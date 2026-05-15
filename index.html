@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>採買記錄</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="採買記錄">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.1);
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+    }
+    h1 { font-size: 1.4rem; color: #1a1a1a; margin-bottom: 16px; }
+    .banner {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.88rem;
+      color: #7a5800;
+      margin-bottom: 20px;
+      line-height: 1.6;
+      display: none;
+    }
+    .banner strong { display: block; margin-bottom: 4px; }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #555;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    input[type="date"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="date"]:focus { border-color: #4CAF50; }
+    .textarea-wrap { position: relative; }
+    textarea {
+      width: 100%;
+      height: 260px;
+      padding: 12px;
+      padding-bottom: 44px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: monospace;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.6;
+    }
+    textarea:focus { border-color: #4CAF50; }
+    .paste-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      padding: 6px 14px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .paste-btn:active { background: #c8e6c9; }
+    .btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #43a047; }
+    .btn:active { background: #388e3c; }
+    .btn:disabled { background: #aaa; cursor: default; }
+    .preview {
+      margin-top: 20px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+    }
+    .preview table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .preview th {
+      background: #f0f4f0;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #444;
+      border-bottom: 1px solid #ddd;
+    }
+    .preview td { padding: 7px 12px; border-bottom: 1px solid #f0f0f0; color: #333; }
+    .preview tr:last-child td { border-bottom: none; }
+    .preview tr.separator td { background: #fafafa; height: 6px; padding: 0; }
+    .qty { text-align: right; font-weight: 500; color: #2e7d32; }
+    .empty-qty { color: #bbb; text-align: right; }
+    .count { font-size: 0.8rem; color: #888; margin-top: 8px; }
+    .error { color: #c62828; font-size: 0.85rem; margin-top: 8px; display: none; }
+    .msg { color: #2e7d32; font-size: 0.85rem; margin-top: 8px; display: none; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>🛒 採買記錄 → Excel</h1>
+
+  <div class="banner" id="webviewBanner">
+    <strong>⚠️ 請改用瀏覽器開啟</strong>
+    目前是在 Documents / 檔案 App 內開啟，下載功能會受限。<br>
+    請改用 <strong>Safari（iOS）</strong> 或 <strong>Chrome（Android）</strong> 開啟這個檔案。
+  </div>
+
+  <label for="dateInput">日期</label>
+  <input type="date" id="dateInput">
+
+  <label>採買資料</label>
+  <div class="textarea-wrap">
+    <textarea id="dataInput" placeholder="帶殼玉米筍=4&#10;日本山藥==1&#10;蘆筍======2&#10;..."></textarea>
+    <button class="paste-btn" onclick="pasteFromClipboard()">貼上</button>
+  </div>
+
+  <div class="error" id="errorMsg"></div>
+  <div class="msg" id="statusMsg"></div>
+  <div class="count" id="countMsg"></div>
+
+  <button class="btn" id="downloadBtn" onclick="generate()">下載 Excel</button>
+
+  <div class="preview" id="preview">
+    <table id="previewTable"></table>
+  </div>
+</div>
+
+<script>
+  // Default to today
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  document.getElementById('dateInput').value = `${yyyy}-${mm}-${dd}`;
+
+  // Detect WebView (Documents app, LINE, etc.) — not a real browser
+  function isWebView() {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isAndroid = /Android/.test(ua);
+    if (isIOS) {
+      // Real Safari has "Safari/" and "Version/" in UA; WebViews typically don't
+      return !(/Safari\//.test(ua) && /Version\//.test(ua));
+    }
+    if (isAndroid) {
+      // Android WebView has "wv" or missing "Chrome" entirely
+      return /wv/.test(ua) || !/Chrome\//.test(ua);
+    }
+    return false;
+  }
+
+  if (isWebView()) {
+    document.getElementById('webviewBanner').style.display = 'block';
+  }
+
+  document.getElementById('dataInput').addEventListener('input', updatePreview);
+
+  async function pasteFromClipboard() {
+    const statusEl = document.getElementById('statusMsg');
+    const errorEl = document.getElementById('errorMsg');
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        document.getElementById('dataInput').value = text;
+        updatePreview();
+        statusEl.textContent = '已貼上！';
+        statusEl.style.display = 'block';
+        errorEl.style.display = 'none';
+        setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+      }
+    } catch (e) {
+      errorEl.textContent = '無法讀取剪貼簿，請長按文字框後選「貼上」。';
+      errorEl.style.display = 'block';
+      setTimeout(() => { errorEl.style.display = 'none'; }, 3000);
+    }
+  }
+
+  function parseData(text) {
+    const rows = [];
+    const lines = text.split('\n');
+    let group = 1;
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      if (line.trim() === '') {
+        if (rows.length > 0 && rows[rows.length - 1].type !== 'sep') {
+          rows.push({ type: 'sep' });
+          group++;
+        }
+        continue;
+      }
+      const match = line.match(/^(.+?)\s*=+\s*(\d+)?\s*$/);
+      if (match) {
+        rows.push({ type: 'item', name: match[1].trim(), qty: match[2] ? parseInt(match[2], 10) : '', group });
+      } else if (line.trim()) {
+        rows.push({ type: 'item', name: line.trim(), qty: '', group });
+      }
+    }
+    while (rows.length && rows[rows.length - 1].type === 'sep') rows.pop();
+    return rows;
+  }
+
+  function updatePreview() {
+    const rows = parseData(document.getElementById('dataInput').value);
+    const items = rows.filter(r => r.type === 'item');
+    const countEl = document.getElementById('countMsg');
+    const previewEl = document.getElementById('preview');
+    const tableEl = document.getElementById('previewTable');
+    if (items.length === 0) {
+      previewEl.style.display = 'none';
+      countEl.textContent = '';
+      return;
+    }
+    countEl.textContent = `共 ${items.length} 項`;
+    let html = '<tr><th>品項</th><th style="text-align:right">數量</th></tr>';
+    for (const row of rows) {
+      if (row.type === 'sep') {
+        html += '<tr class="separator"><td colspan="2"></td></tr>';
+      } else {
+        const qtyCell = row.qty !== '' ? `<td class="qty">${row.qty}</td>` : `<td class="empty-qty">—</td>`;
+        html += `<tr><td>${row.name}</td>${qtyCell}</tr>`;
+      }
+    }
+    tableEl.innerHTML = html;
+    previewEl.style.display = 'block';
+  }
+
+  function generate() {
+    const text = document.getElementById('dataInput').value.trim();
+    const dateVal = document.getElementById('dateInput').value;
+    const errorEl = document.getElementById('errorMsg');
+    errorEl.style.display = 'none';
+
+    if (!text) {
+      errorEl.textContent = '請先貼上採買資料';
+      errorEl.style.display = 'block';
+      return;
+    }
+    const rows = parseData(text);
+    if (rows.filter(r => r.type === 'item').length === 0) {
+      errorEl.textContent = '無法解析資料，請確認格式';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const wsData = [['品項', '數量', '日期']];
+    for (const row of rows) {
+      if (row.type === 'sep') wsData.push(['', '', '']);
+      else wsData.push([row.name, row.qty !== '' ? row.qty : '', dateVal]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 18 }, { wch: 8 }, { wch: 12 }];
+    ['A1','B1','C1'].forEach(addr => {
+      if (ws[addr]) ws[addr].s = { font: { bold: true }, fill: { fgColor: { rgb: 'D9EAD3' } } };
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '採買記錄');
+
+    const filename = dateVal ? `採買_${dateVal.replace(/-/g, '')}.xlsx` : '採買記錄.xlsx';
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+
+    // iOS Safari: open in new tab so user can save from share sheet
+    // Android Chrome / Desktop: use anchor download
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      window.open(url, '_blank');
+    } else {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+    }
+  }
+
+  updatePreview();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+</body>
+</html>
