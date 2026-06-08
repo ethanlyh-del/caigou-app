@@ -550,7 +550,10 @@ refreshIdle();
 setInterval(tick, 1000);
 setInterval(refreshIdle, 9000);
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+// Unregister any service worker for this page to prevent stale cache
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+}
 </script>
 </body>
 </html>
