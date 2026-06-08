@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#ff9a9e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="虛擬貓咪">
+  <script src="sounds/cat-sounds.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -21,25 +22,25 @@
     body.mood-sad    { background: linear-gradient(160deg, #e0e0e0 0%, #bdbdbd 100%); }
     body.mood-dirty  { background: linear-gradient(160deg, #dcedc8 0%, #aed581 100%); }
     body.mood-sleepy { background: linear-gradient(160deg, #e8eaf6 0%, #9fa8da 100%); }
+    body.mood-angry  { background: linear-gradient(160deg, #fce4ec 0%, #f48fb1 100%); }
 
     .app {
       background: rgba(255,255,255,0.93);
       border-radius: 28px;
       box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-      padding: 22px 20px 26px;
+      padding: 20px 20px 24px;
       width: 100%; max-width: 380px;
     }
 
-    .header { text-align: center; margin-bottom: 14px; }
+    .header { text-align: center; margin-bottom: 12px; }
     .cat-name { font-size: 1.1rem; font-weight: 700; color: #333; }
     .cat-age  { font-size: 0.76rem; color: #aaa; margin-top: 2px; }
 
     .cat-area {
       position: relative;
       text-align: center;
-      height: 200px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      margin-bottom: 18px;
+      display: flex; flex-direction: column; align-items: center;
+      margin-bottom: 16px;
     }
 
     .speech-bubble {
@@ -49,7 +50,7 @@
       padding: 7px 16px;
       font-size: 0.87rem; color: #555;
       margin-bottom: 10px;
-      max-width: 230px; min-height: 34px;
+      max-width: 240px; min-height: 34px;
       display: flex; align-items: center; justify-content: center;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       position: relative;
@@ -65,44 +66,55 @@
       border: 5px solid transparent; border-top-color: white; z-index: 1;
     }
 
-    .cat-wrap { position: relative; display: inline-block; }
+    .cat-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
 
     #catImg {
-      height: 155px;
-      width: auto;
-      max-width: 170px;
-      cursor: pointer; display: block; margin: 0 auto;
+      height: 150px; width: 150px;
+      object-fit: cover; border-radius: 50%;
+      cursor: pointer; display: block;
       animation: idle 2.5s ease-in-out infinite;
       -webkit-tap-highlight-color: transparent;
-      filter: drop-shadow(0 5px 12px rgba(0,0,0,0.18));
-      transition: opacity 0.25s ease;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+      border: 3px solid rgba(255,255,255,0.8);
     }
     #catImg.bounce   { animation: bounce 0.6s ease forwards; }
     #catImg.sleeping { animation: sleeping 3.5s ease-in-out infinite; }
+    #catImg.shake    { animation: shake 0.5s ease forwards; }
+
+    .cat-status {
+      font-size: 0.78rem; color: #999;
+      background: white;
+      border-radius: 12px;
+      padding: 2px 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
 
     @keyframes idle {
       0%,100% { transform: translateY(0) rotate(0deg); }
-      35% { transform: translateY(-7px) rotate(-1.5deg); }
-      70% { transform: translateY(-5px) rotate(1deg); }
+      35% { transform: translateY(-6px) rotate(-1.5deg); }
+      70% { transform: translateY(-4px) rotate(1deg); }
     }
     @keyframes bounce {
       0%  { transform: scale(1) rotate(0); }
-      20% { transform: scale(1.22) rotate(-8deg); }
-      45% { transform: scale(0.9) rotate(5deg); }
-      70% { transform: scale(1.08) rotate(-2deg); }
+      20% { transform: scale(1.18) rotate(-7deg); }
+      45% { transform: scale(0.92) rotate(4deg); }
+      70% { transform: scale(1.06) rotate(-2deg); }
       100%{ transform: scale(1) rotate(0); }
     }
     @keyframes sleeping {
-      0%,100% { transform: translateY(0) rotate(-3deg); }
-      50% { transform: translateY(-4px) rotate(3deg); }
+      0%,100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-3px) rotate(2deg); }
     }
-
-    .cat-status-badge {
-      position: absolute; bottom: -2px; right: -18px;
-      background: white; border-radius: 10px;
-      padding: 2px 8px; font-size: 0.7rem; color: #888;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      white-space: nowrap;
+    @keyframes shake {
+      0%  { transform: translateX(0); }
+      15% { transform: translateX(-8px) rotate(-5deg); }
+      30% { transform: translateX(8px) rotate(5deg); }
+      45% { transform: translateX(-6px) rotate(-3deg); }
+      60% { transform: translateX(6px) rotate(3deg); }
+      75% { transform: translateX(-3px); }
+      100%{ transform: translateX(0) rotate(0); }
     }
 
     .float-effect {
@@ -117,7 +129,7 @@
       100% { opacity:0; transform: translateY(-78px) scale(0.9); }
     }
 
-    .stats { margin-bottom: 18px; display: flex; flex-direction: column; gap: 10px; }
+    .stats { margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
     .stat-row { display: flex; align-items: center; gap: 9px; }
     .stat-icon  { font-size: 17px; width: 22px; flex-shrink: 0; }
     .stat-label { font-size: 0.8rem; color: #666; width: 50px; flex-shrink: 0; }
@@ -134,7 +146,7 @@
 
     .alert {
       text-align: center; font-size: 0.79rem; color: #e53935;
-      min-height: 18px; margin-bottom: 10px; transition: opacity 0.3s;
+      min-height: 18px; margin-bottom: 8px; transition: opacity 0.3s;
     }
 
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
@@ -154,6 +166,7 @@
     .btn-clean { background: #e3f2fd; color: #1565c0; }
     .btn-pet   { background: #fce4ec; color: #c2185b; }
     .btn-play  { background: #e8f5e9; color: #2e7d32; }
+    .btn-scare { background: #fff8e1; color: #f57f17; }
     .btn-sleep {
       grid-column: 1 / -1;
       background: #ede7f6; color: #4527a0;
@@ -180,7 +193,7 @@
     <div class="speech-bubble" id="speechBubble">呼嚕呼嚕♪</div>
     <div class="cat-wrap">
       <img id="catImg" src="cats/kaixin.png" alt="小橘" onclick="petCat()">
-      <div class="cat-status-badge" id="catStatus">開心</div>
+      <div class="cat-status" id="catStatus">開心</div>
     </div>
   </div>
 
@@ -212,7 +225,7 @@
   <div class="actions">
     <button class="action-btn btn-feed"  id="btnFeed"  onclick="feedCat()">
       <span class="btn-icon">🍣</span><span class="btn-label">餵食</span>
-      <div class="cooldown-bar" id="cd-feed"  style="width:0"></div>
+      <div class="cooldown-bar" id="cd-feed" style="width:0"></div>
     </button>
     <button class="action-btn btn-clean" id="btnClean" onclick="cleanCat()">
       <span class="btn-icon">🛁</span><span class="btn-label">清潔</span>
@@ -220,11 +233,15 @@
     </button>
     <button class="action-btn btn-pet"   id="btnPet"   onclick="petCat()">
       <span class="btn-icon">🤍</span><span class="btn-label">撫摸</span>
-      <div class="cooldown-bar" id="cd-pet"   style="width:0"></div>
+      <div class="cooldown-bar" id="cd-pet" style="width:0"></div>
     </button>
     <button class="action-btn btn-play"  id="btnPlay"  onclick="playCat()">
       <span class="btn-icon">🎾</span><span class="btn-label">逗貓</span>
-      <div class="cooldown-bar" id="cd-play"  style="width:0"></div>
+      <div class="cooldown-bar" id="cd-play" style="width:0"></div>
+    </button>
+    <button class="action-btn btn-scare" id="btnScare" onclick="scareCat()">
+      <span class="btn-icon">😱</span><span class="btn-label">嚇貓</span>
+      <div class="cooldown-bar" id="cd-scare" style="width:0"></div>
     </button>
     <button class="action-btn btn-sleep" id="btnSleep" onclick="sleepCat()">
       <span class="btn-icon">😴</span><span class="btn-label">讓貓咪睡覺</span>
@@ -242,11 +259,9 @@ const STATE_IMG = {
   hungry:   'cats/duzi.png',
   dirty:    'cats/shengqi.png',
   unhappy:  'cats/shengqi.png',
+  angry:    'cats/shengqi.png',
 };
-const REACTION_IMG = {
-  pet:  'cats/shufu.png',
-  feed: 'cats/chbao.png',
-};
+const REACTION_IMG = { pet: 'cats/shufu.png', feed: 'cats/chbao.png' };
 let reactionActive = false, reactionTm;
 
 function showReaction(type) {
@@ -261,16 +276,15 @@ function showReaction(type) {
 }
 
 function updateCatImage() {
-  if (!reactionActive) {
+  if (!reactionActive)
     document.getElementById('catImg').src = STATE_IMG[getCatState()] || STATE_IMG.happy;
-  }
 }
 
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 const DECAY     = { fullness: 30, cleanliness: 45, happiness: 60 };
 const E_RESTORE = 120;
-const COOLDOWNS = { feed: 3000, clean: 5000, pet: 1500, play: 4000, sleep: 20000 };
-const cooldownEnd = { feed: 0, clean: 0, pet: 0, play: 0, sleep: 0 };
+const COOLDOWNS = { feed: 3000, clean: 5000, pet: 1500, play: 4000, scare: 8000, sleep: 20000 };
+const cooldownEnd = { feed:0, clean:0, pet:0, play:0, scare:0, sleep:0 };
 
 const MESSAGES = {
   idle: {
@@ -285,6 +299,7 @@ const MESSAGES = {
   clean: ['舒服～', '好香喔！', '我最愛乾淨了！', '謝謝你幫我洗澡！', '亮晶晶✨'],
   pet:   ['呼嚕呼嚕♪', '再摸一下嘛～', '好舒服...', '喜歡！喜歡！', '嗯嗯嗯♡'],
   play:  ['抓到了！', '喵！！！', '好好玩！！', '再一次！！', '我最強！', '耶～！'],
+  scare: ['哇！！！', '嚇死我了！', '你幹嘛啦！！', '太過分了！', '喵—！！！'],
   sleep: ['Zzz...', '好想睡...', '（蜷成一團）', '睡一下就好...'],
   wake:  ['（打哈欠）', '睡飽了！', '又有精神了！', '喵～早安！'],
 };
@@ -311,7 +326,6 @@ function loadState() {
       return;
     } catch(e) {}
   }
-  // First visit
   birthDate = new Date().toISOString().split('T')[0];
   stats = { fullness: 80, cleanliness: 90, happiness: 75, energy: 60 };
   lastSaved = Date.now();
@@ -361,11 +375,12 @@ function showAlert(msg) {
 
 function animateCat(type) {
   const el = document.getElementById('catImg');
-  el.classList.remove('bounce', 'sleeping');
+  el.classList.remove('bounce', 'sleeping', 'shake');
   void el.offsetWidth;
   if (type) {
     el.classList.add(type);
-    if (type === 'bounce') setTimeout(() => el.classList.remove('bounce'), 650);
+    if (type === 'bounce' || type === 'shake')
+      setTimeout(() => el.classList.remove(type), 650);
   }
 }
 
@@ -381,7 +396,7 @@ function spawnEffect(emoji, offX) {
 }
 
 function startCooldown(action) {
-  const ms  = COOLDOWNS[action];
+  const ms = COOLDOWNS[action];
   cooldownEnd[action] = Date.now() + ms;
   const key = action[0].toUpperCase() + action.slice(1);
   const btn = document.getElementById('btn' + key);
@@ -420,56 +435,30 @@ function updateUI() {
 
   const days = Math.floor((Date.now() - new Date(birthDate)) / 86400000) + 1;
   document.getElementById('catAge').textContent = `第 ${days} 天 · 小貓咪`;
-
   saveState();
 }
 
 // ── SOUND ────────────────────────────────────────────────────────────────────
-let audioCtx;
-function meow(type) {
+function playSound(type) {
   try {
-    if (!audioCtx || audioCtx.state === 'closed')
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    const filter = audioCtx.createBiquadFilter();
-    osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-    filter.type = 'bandpass'; filter.Q.value = 1.8;
-    osc.type = 'sawtooth';
-    const t = audioCtx.currentTime;
-
-    const configs = {
-      happy:  { fq: 1200, freqs: [[600,0],[1100,.12],[700,.35]], vol: .13, dur: .45 },
-      hungry: { fq:  800, freqs: [[350,0],[600,.2],[350,.7]],    vol: .11, dur: .8  },
-      play:   { fq: 1500, freqs: [[800,0],[1400,.08],[900,.25]], vol: .15, dur: .3  },
-      default:{ fq: 1000, freqs: [[500,0],[900,.15],[500,.45]],  vol: .12, dur: .55 },
-    };
-    const c = configs[type] || configs.default;
-    filter.frequency.value = c.fq;
-    c.freqs.forEach(([f,dt]) =>
-      dt === 0
-        ? osc.frequency.setValueAtTime(f, t)
-        : osc.frequency.linearRampToValueAtTime(f, t + dt)
-    );
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(c.vol, t + 0.05);
-    gain.gain.setValueAtTime(c.vol, t + c.dur * 0.7);
-    gain.gain.linearRampToValueAtTime(0, t + c.dur);
-    osc.start(t); osc.stop(t + c.dur + 0.05);
+    const sounds = (typeof CAT_SOUNDS !== 'undefined') ? CAT_SOUNDS : {};
+    const src = sounds[type] || sounds['meow'];
+    if (!src) return;
+    const audio = new Audio(src);
+    audio.volume = 0.75;
+    audio.play().catch(() => {});
   } catch(e) {}
 }
 
 // ── ACTIONS ──────────────────────────────────────────────────────────────────
 function feedCat() {
   if (stats.fullness >= 98) { showAlert('我已經很飽了！'); return; }
-  stats.fullness   = clamp(stats.fullness + 30);
-  stats.happiness  = clamp(stats.happiness + 5);
+  stats.fullness  = clamp(stats.fullness + 30);
+  stats.happiness = clamp(stats.happiness + 5);
   animateCat('bounce');
   showMessage(rand(MESSAGES.feed));
   spawnEffect('🍣'); spawnEffect('✨', 22);
-  meow('happy');
+  playSound('happy');
   showReaction('feed');
   startCooldown('feed');
   updateUI();
@@ -482,7 +471,7 @@ function cleanCat() {
   animateCat('bounce');
   showMessage(rand(MESSAGES.clean));
   spawnEffect('✨'); spawnEffect('💧', 22);
-  meow();
+  playSound('meow');
   startCooldown('clean');
   updateUI();
 }
@@ -494,7 +483,7 @@ function petCat() {
   animateCat('bounce');
   showMessage(rand(MESSAGES.pet));
   spawnEffect('💕'); spawnEffect('💗', 22);
-  meow('happy');
+  playSound('happy');
   showReaction('pet');
   startCooldown('pet');
   updateUI();
@@ -509,9 +498,26 @@ function playCat() {
   animateCat('bounce');
   showMessage(rand(MESSAGES.play));
   spawnEffect('🎾'); spawnEffect('⭐', 22);
-  meow('play');
+  playSound('play');
   startCooldown('play');
   updateUI();
+}
+
+function scareCat() {
+  stats.happiness = clamp(stats.happiness - 20);
+  reactionActive = true;
+  document.getElementById('catImg').src = STATE_IMG.angry;
+  document.body.className = 'mood-angry';
+  animateCat('shake');
+  showMessage(rand(MESSAGES.scare));
+  spawnEffect('💢'); spawnEffect('😤', 22);
+  playSound('angry');
+  startCooldown('scare');
+  clearTimeout(reactionTm);
+  reactionTm = setTimeout(() => {
+    reactionActive = false;
+    updateUI();
+  }, 2500);
 }
 
 function sleepCat() {
@@ -524,7 +530,7 @@ function sleepCat() {
     reactionActive = false;
     animateCat('bounce');
     showMessage(rand(MESSAGES.wake));
-    meow();
+    playSound('meow');
     updateUI();
   }, 3000);
   updateUI();
@@ -550,10 +556,8 @@ refreshIdle();
 setInterval(tick, 1000);
 setInterval(refreshIdle, 9000);
 
-// Unregister any service worker for this page to prevent stale cache
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator)
   navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-}
 </script>
 </body>
 </html>
