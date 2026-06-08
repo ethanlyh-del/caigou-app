@@ -1,4 +1,4 @@
-const CACHE = 'shopping-v1';
+const CACHE = 'shopping-v3';
 const ASSETS = ['/', '/index.html', 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'];
 
 self.addEventListener('install', e => {
