@@ -430,7 +430,7 @@ function updateCatImage() {
 }
 
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
-const DECAY = { fullness:30, cleanliness:45, happiness:60 };
+const DECAY = { fullness:300, cleanliness:450, happiness:600 };
 const E_RESTORE = 120;
 const COOLDOWNS = { feed:3000, clean:5000, pet:1500, play:4000, scare:8000, hit:5000, poop:5000, hospital:30000, sleep:20000 };
 const cdEnd = {};
@@ -499,12 +499,22 @@ function loadState() {
         health:      s.health ?? 100,
         intimacy:    s.intimacy ?? 0,
       };
-      // Apply sick health decay retroactively
+      // Retroactive sick health decay — only count duration cat was ACTUALLY sick
       if (!isDead) {
         const isSickOnLoad = checkSick(stats);
         if (isSickOnLoad) {
-          stats.health = clamp(stats.health - elapsed/20);
-          if (stats.health <= 0) { stats.health=0; isDead=true; }
+          // Find when each currently-sick stat crossed below 30
+          const onsets = [];
+          if (stats.fullness    < 30) onsets.push(s.fullness    > 30 ? (s.fullness    - 30) * DECAY.fullness    : 0);
+          if (stats.cleanliness < 30) onsets.push(s.cleanliness > 30 ? (s.cleanliness - 30) * DECAY.cleanliness : 0);
+          if (stats.happiness   < 30) onsets.push(s.happiness   > 30 ? (s.happiness   - 30) * DECAY.happiness   : 0);
+          if (stats.energy      < 30) onsets.push(0);
+          onsets.sort((a,b) => a - b); // ascending: [earliest, second-earliest, ...]
+          // Cat became sick when the SECOND stat crossed 30 (index [1])
+          const sickStarted  = onsets.length >= 2 ? onsets[1] : 0;
+          const sickDuration = Math.max(0, elapsed - sickStarted);
+          stats.health = clamp((s.health ?? 100) - sickDuration / 120);
+          if (stats.health <= 0) { stats.health = 0; isDead = true; }
         }
       }
       if (elapsed > 600 && !isDead)
@@ -530,7 +540,9 @@ function confirmName() {
   document.getElementById('nameScreen').classList.add('hidden');
   birthDate = new Date().toISOString().split('T')[0];
   stats = defaultStats();
+  isDead = false;
   lastSaved = Date.now();
+  lastTick = Date.now(); // reset so naming-screen time doesn't count as decay
   saveState();
   updateUI(); refreshIdle();
 }
@@ -868,7 +880,7 @@ let lastTick = Date.now();
 function tick() {
   if (isDead) return;
   const now = Date.now();
-  const e = (now-lastTick)/1000; lastTick=now;
+  const e = Math.min((now-lastTick)/1000, 30); lastTick=now; // cap delta at 30s
 
   stats.fullness    = clamp(stats.fullness    - e/DECAY.fullness);
   stats.cleanliness = clamp(stats.cleanliness - e/DECAY.cleanliness);
@@ -877,10 +889,10 @@ function tick() {
 
   const isSick = checkSick();
   if (isSick) {
-    stats.health = clamp(stats.health - e/20);  // -1 per 20s when sick
+    stats.health = clamp(stats.health - e/60);  // -1 per 60s when sick
     if (stats.health<=0) { stats.health=0; triggerDeath(); return; }
   } else if (stats.health<100) {
-    stats.health = clamp(stats.health + e/120); // slow recovery when healthy
+    stats.health = clamp(stats.health + e/120);
   }
   updateUI();
 }
