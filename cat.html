@@ -69,7 +69,7 @@
 
     .nc-choose-title { font-size: 0.9rem; color: #888; font-weight: 600; }
     .nc-cat-options {
-      display: flex; gap: 16px; justify-content: center; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;
     }
     .nc-cat-opt {
       flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -236,6 +236,10 @@
         <img src="cats/kaixin.png" alt="白貓">
         <span>白貓</span>
       </div>
+      <div class="nc-cat-opt" data-type="orange" onclick="selectCatType('orange')">
+        <img src="cats/orange/kaixin.png" alt="橘貓">
+        <span>橘貓</span>
+      </div>
       <div class="nc-cat-opt" data-type="sanhua" onclick="selectCatType('sanhua')">
         <img src="cats/sanhua/kaixin.png" alt="三花貓">
         <span>三花</span>
@@ -354,7 +358,7 @@ let catType = 'white';
 let STATE_IMG, REACT_IMG;
 
 function buildImgMaps() {
-  const f = catType === 'kuro' ? 'cats/kuro' : catType === 'sanhua' ? 'cats/sanhua' : 'cats';
+  const f = catType === 'kuro' ? 'cats/kuro' : catType === 'sanhua' ? 'cats/sanhua' : catType === 'orange' ? 'cats/orange' : 'cats';
   STATE_IMG = {
     happy:`${f}/kaixin.png`, ecstatic:`${f}/xihuan.png`,
     sleepy:`${f}/pilei.png`, hungry:`${f}/duzi.png`,
@@ -431,7 +435,7 @@ function loadState() {
     try {
       const d = JSON.parse(raw);
       catType   = d.catType || 'white';
-      const defaultName = catType==='kuro' ? '小黑' : catType==='sanhua' ? '小花' : '小白';
+      const defaultName = catType==='kuro' ? '小黑' : catType==='sanhua' ? '小花' : catType==='orange' ? '小橘' : '小白';
       catName   = d.catName || defaultName;
       buildImgMaps();
       birthDate = d.birthDate;
@@ -471,7 +475,7 @@ function saveState() {
 
 function confirmName() {
   const input = document.getElementById('nameInput').value.trim();
-  const defaultName = catType==='kuro' ? '小黑' : catType==='sanhua' ? '小花' : '小白';
+  const defaultName = catType==='kuro' ? '小黑' : catType==='sanhua' ? '小花' : catType==='orange' ? '小橘' : '小白';
   catName = input || defaultName;
   buildImgMaps();
   document.getElementById('nameScreen').classList.add('hidden');
