@@ -444,7 +444,7 @@ function loadState() {
     try {
       const d = JSON.parse(raw);
       catType   = d.catType || 'white';
-      const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕', blue:'小灰' };
+      const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕', blue:'小藍' };
       catName   = d.catName || defaults[catType] || '小白';
       buildImgMaps();
       birthDate = d.birthDate;
@@ -484,7 +484,7 @@ function saveState() {
 
 function confirmName() {
   const input = document.getElementById('nameInput').value.trim();
-  const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕', blue:'小灰' };
+  const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕', blue:'小藍' };
   catName = input || defaults[catType] || '小白';
   buildImgMaps();
   document.getElementById('nameScreen').classList.add('hidden');
