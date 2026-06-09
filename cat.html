@@ -248,6 +248,10 @@
         <img src="cats/brown/kaixin.png" alt="棕條紋貓">
         <span>棕條紋</span>
       </div>
+      <div class="nc-cat-opt" data-type="blue" onclick="selectCatType('blue')">
+        <img src="cats/blue/kaixin.png" alt="藍貓">
+        <span>藍貓</span>
+      </div>
       <div class="nc-cat-opt" data-type="kuro" onclick="selectCatType('kuro')">
         <img src="cats/kuro/kaixin.png" alt="黑貓">
         <span>黑貓</span>
@@ -362,7 +366,7 @@ let catType = 'white';
 let STATE_IMG, REACT_IMG;
 
 function buildImgMaps() {
-  const folders = { kuro:'cats/kuro', sanhua:'cats/sanhua', orange:'cats/orange', brown:'cats/brown' };
+  const folders = { kuro:'cats/kuro', sanhua:'cats/sanhua', orange:'cats/orange', brown:'cats/brown', blue:'cats/blue' };
   const f = folders[catType] || 'cats';
   STATE_IMG = {
     happy:`${f}/kaixin.png`, ecstatic:`${f}/xihuan.png`,
@@ -440,7 +444,7 @@ function loadState() {
     try {
       const d = JSON.parse(raw);
       catType   = d.catType || 'white';
-      const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕' };
+      const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕', blue:'小灰' };
       catName   = d.catName || defaults[catType] || '小白';
       buildImgMaps();
       birthDate = d.birthDate;
@@ -480,7 +484,7 @@ function saveState() {
 
 function confirmName() {
   const input = document.getElementById('nameInput').value.trim();
-  const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕' };
+  const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕', blue:'小灰' };
   catName = input || defaults[catType] || '小白';
   buildImgMaps();
   document.getElementById('nameScreen').classList.add('hidden');
