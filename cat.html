@@ -82,7 +82,7 @@
       border-color: #fcb69f; background: #fff5f0;
       box-shadow: 0 4px 14px rgba(252,182,159,0.4);
     }
-    .nc-cat-opt img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; }
+    .nc-cat-opt img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; }
     .nc-cat-opt span { font-size: 0.9rem; font-weight: 600; color: #555; }
 
     /* ── Header ─────────────────────────────────────────────────── */
@@ -232,12 +232,16 @@
     <div class="nc-title">🐾 歡迎來到虛擬貓咪！</div>
     <div class="nc-choose-title">選擇你要收養的貓咪</div>
     <div class="nc-cat-options">
-      <div class="nc-cat-opt selected" data-type="orange" onclick="selectCatType('orange')">
-        <img id="ncImgOrange" src="cats/kaixin.png" alt="橘貓">
-        <span>橘貓</span>
+      <div class="nc-cat-opt selected" data-type="white" onclick="selectCatType('white')">
+        <img src="cats/kaixin.png" alt="白貓">
+        <span>白貓</span>
+      </div>
+      <div class="nc-cat-opt" data-type="sanhua" onclick="selectCatType('sanhua')">
+        <img src="cats/sanhua/kaixin.png" alt="三花貓">
+        <span>三花</span>
       </div>
       <div class="nc-cat-opt" data-type="kuro" onclick="selectCatType('kuro')">
-        <img id="ncImgKuro" src="cats/kuro/kaixin.png" alt="黑貓">
+        <img src="cats/kuro/kaixin.png" alt="黑貓">
         <span>黑貓</span>
       </div>
     </div>
@@ -346,11 +350,11 @@
 
 <script>
 // ── IMAGES ───────────────────────────────────────────────────────────────────
-let catType = 'orange';
+let catType = 'white';
 let STATE_IMG, REACT_IMG;
 
 function buildImgMaps() {
-  const f = catType === 'kuro' ? 'cats/kuro' : 'cats';
+  const f = catType === 'kuro' ? 'cats/kuro' : catType === 'sanhua' ? 'cats/sanhua' : 'cats';
   STATE_IMG = {
     happy:`${f}/kaixin.png`, ecstatic:`${f}/xihuan.png`,
     sleepy:`${f}/pilei.png`, hungry:`${f}/duzi.png`,
@@ -426,8 +430,9 @@ function loadState() {
   if (raw) {
     try {
       const d = JSON.parse(raw);
-      catType   = d.catType || 'orange';
-      catName   = d.catName || (catType === 'kuro' ? '小黑' : '小橘');
+      catType   = d.catType || 'white';
+      const defaultName = catType==='kuro' ? '小黑' : catType==='sanhua' ? '小花' : '小白';
+      catName   = d.catName || defaultName;
       buildImgMaps();
       birthDate = d.birthDate;
       isDead    = d.isDead || false;
@@ -466,7 +471,8 @@ function saveState() {
 
 function confirmName() {
   const input = document.getElementById('nameInput').value.trim();
-  catName = input || (catType === 'kuro' ? '小黑' : '小橘');
+  const defaultName = catType==='kuro' ? '小黑' : catType==='sanhua' ? '小花' : '小白';
+  catName = input || defaultName;
   buildImgMaps();
   document.getElementById('nameScreen').classList.add('hidden');
   birthDate = new Date().toISOString().split('T')[0];
