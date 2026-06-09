@@ -67,6 +67,24 @@
     }
     .name-card .nc-btn:active { background: #f5a070; }
 
+    .nc-choose-title { font-size: 0.9rem; color: #888; font-weight: 600; }
+    .nc-cat-options {
+      display: flex; gap: 16px; justify-content: center; width: 100%;
+    }
+    .nc-cat-opt {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 8px; padding: 12px 8px; border-radius: 16px;
+      border: 3px solid #f0e0e0; cursor: pointer; transition: all 0.2s;
+      background: #fafafa;
+    }
+    .nc-cat-opt:active { transform: scale(0.97); }
+    .nc-cat-opt.selected {
+      border-color: #fcb69f; background: #fff5f0;
+      box-shadow: 0 4px 14px rgba(252,182,159,0.4);
+    }
+    .nc-cat-opt img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; }
+    .nc-cat-opt span { font-size: 0.9rem; font-weight: 600; color: #555; }
+
     /* ── Header ─────────────────────────────────────────────────── */
     .header { text-align: center; margin-bottom: 10px; }
     .cat-name { font-size: 1.1rem; font-weight: 700; color: #333; transition: color 0.4s; }
@@ -212,8 +230,18 @@
 <div id="nameScreen">
   <div class="name-card">
     <div class="nc-title">🐾 歡迎來到虛擬貓咪！</div>
-    <img class="nc-img" src="cats/kaixin.png" alt="貓咪">
-    <div class="nc-sub">你撿到了一隻流浪貓<br>幫牠取個名字吧～</div>
+    <div class="nc-choose-title">選擇你要收養的貓咪</div>
+    <div class="nc-cat-options">
+      <div class="nc-cat-opt selected" data-type="orange" onclick="selectCatType('orange')">
+        <img id="ncImgOrange" src="cats/kaixin.png" alt="橘貓">
+        <span>橘貓</span>
+      </div>
+      <div class="nc-cat-opt" data-type="kuro" onclick="selectCatType('kuro')">
+        <img id="ncImgKuro" src="cats/kuro/kaixin.png" alt="黑貓">
+        <span>黑貓</span>
+      </div>
+    </div>
+    <div class="nc-sub">幫牠取個名字吧～</div>
     <input type="text" id="nameInput" placeholder="輸入貓咪的名字" maxlength="10"
       onkeydown="if(event.key==='Enter')confirmName()">
     <button class="nc-btn" onclick="confirmName()">確認收養 ✓</button>
@@ -318,13 +346,21 @@
 
 <script>
 // ── IMAGES ───────────────────────────────────────────────────────────────────
-const STATE_IMG = {
-  happy:'cats/kaixin.png', ecstatic:'cats/xihuan.png',
-  sleepy:'cats/pilei.png', hungry:'cats/duzi.png',
-  dirty:'cats/shengqi.png', unhappy:'cats/shengqi.png',
-  sick:'cats/sick.png', sickbed:'cats/sickbed.png', dead:'cats/dead.png',
-};
-const REACT_IMG = { pet:'cats/shufu.png', feed:'cats/chbao.png', hit:'cats/blood.png', poop:'cats/dupi.png', claw:'cats/claw.png' };
+let catType = 'orange';
+let STATE_IMG, REACT_IMG;
+
+function buildImgMaps() {
+  const f = catType === 'kuro' ? 'cats/kuro' : 'cats';
+  STATE_IMG = {
+    happy:`${f}/kaixin.png`, ecstatic:`${f}/xihuan.png`,
+    sleepy:`${f}/pilei.png`, hungry:`${f}/duzi.png`,
+    dirty:`${f}/shengqi.png`, unhappy:`${f}/shengqi.png`,
+    sick:`${f}/sick.png`, sickbed:`${f}/sickbed.png`, dead:`${f}/dead.png`,
+  };
+  REACT_IMG = { pet:`${f}/shufu.png`, feed:`${f}/chbao.png`, hit:`${f}/blood.png`, poop:`${f}/dupi.png`, claw:`${f}/claw.png` };
+}
+buildImgMaps();
+
 let reactionActive=false, reactionTm;
 
 function showReaction(type, ms=2500) {
@@ -374,6 +410,13 @@ const MSG = {
 // ── STATE ────────────────────────────────────────────────────────────────────
 let stats, birthDate, lastSaved, isDead=false, catName='小橘', wasStray=false;
 
+function selectCatType(type) {
+  catType = type;
+  document.querySelectorAll('.nc-cat-opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.type === type);
+  });
+}
+
 function defaultStats() {
   return { fullness:80, cleanliness:90, happiness:75, energy:60, health:100 };
 }
@@ -383,7 +426,9 @@ function loadState() {
   if (raw) {
     try {
       const d = JSON.parse(raw);
-      catName   = d.catName || '小橘';
+      catType   = d.catType || 'orange';
+      catName   = d.catName || (catType === 'kuro' ? '小黑' : '小橘');
+      buildImgMaps();
       birthDate = d.birthDate;
       isDead    = d.isDead || false;
       lastSaved = d.lastSaved || Date.now();
@@ -416,12 +461,13 @@ function loadState() {
 
 function saveState() {
   lastSaved = Date.now();
-  localStorage.setItem('catData4', JSON.stringify({stats, birthDate, lastSaved, isDead, catName}));
+  localStorage.setItem('catData4', JSON.stringify({stats, birthDate, lastSaved, isDead, catName, catType}));
 }
 
 function confirmName() {
   const input = document.getElementById('nameInput').value.trim();
-  catName = input || '小橘';
+  catName = input || (catType === 'kuro' ? '小黑' : '小橘');
+  buildImgMaps();
   document.getElementById('nameScreen').classList.add('hidden');
   birthDate = new Date().toISOString().split('T')[0];
   stats = defaultStats();
