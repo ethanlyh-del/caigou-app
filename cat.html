@@ -69,7 +69,7 @@
 
     .nc-choose-title { font-size: 0.9rem; color: #888; font-weight: 600; }
     .nc-cat-options {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%;
     }
     .nc-cat-opt {
       flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -244,6 +244,10 @@
         <img src="cats/sanhua/kaixin.png" alt="三花貓">
         <span>三花</span>
       </div>
+      <div class="nc-cat-opt" data-type="brown" onclick="selectCatType('brown')">
+        <img src="cats/brown/kaixin.png" alt="棕條紋貓">
+        <span>棕條紋</span>
+      </div>
       <div class="nc-cat-opt" data-type="kuro" onclick="selectCatType('kuro')">
         <img src="cats/kuro/kaixin.png" alt="黑貓">
         <span>黑貓</span>
@@ -358,7 +362,8 @@ let catType = 'white';
 let STATE_IMG, REACT_IMG;
 
 function buildImgMaps() {
-  const f = catType === 'kuro' ? 'cats/kuro' : catType === 'sanhua' ? 'cats/sanhua' : catType === 'orange' ? 'cats/orange' : 'cats';
+  const folders = { kuro:'cats/kuro', sanhua:'cats/sanhua', orange:'cats/orange', brown:'cats/brown' };
+  const f = folders[catType] || 'cats';
   STATE_IMG = {
     happy:`${f}/kaixin.png`, ecstatic:`${f}/xihuan.png`,
     sleepy:`${f}/pilei.png`, hungry:`${f}/duzi.png`,
@@ -435,8 +440,8 @@ function loadState() {
     try {
       const d = JSON.parse(raw);
       catType   = d.catType || 'white';
-      const defaultName = catType==='kuro' ? '小黑' : catType==='sanhua' ? '小花' : catType==='orange' ? '小橘' : '小白';
-      catName   = d.catName || defaultName;
+      const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕' };
+      catName   = d.catName || defaults[catType] || '小白';
       buildImgMaps();
       birthDate = d.birthDate;
       isDead    = d.isDead || false;
@@ -475,8 +480,8 @@ function saveState() {
 
 function confirmName() {
   const input = document.getElementById('nameInput').value.trim();
-  const defaultName = catType==='kuro' ? '小黑' : catType==='sanhua' ? '小花' : catType==='orange' ? '小橘' : '小白';
-  catName = input || defaultName;
+  const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕' };
+  catName = input || defaults[catType] || '小白';
   buildImgMaps();
   document.getElementById('nameScreen').classList.add('hidden');
   birthDate = new Date().toISOString().split('T')[0];
