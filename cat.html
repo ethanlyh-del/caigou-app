@@ -405,7 +405,7 @@ function loadState() {
         }
       }
       if (elapsed > 600 && !isDead)
-        setTimeout(() => showMessage(`你離開了 ${Math.round(elapsed/60)} 分鐘，小橘好想你！`), 600);
+        setTimeout(() => showMessage(`你離開了 ${Math.round(elapsed/60)} 分鐘，${catName}好想你！`), 600);
       return;
     } catch(e) {}
   }
@@ -539,9 +539,11 @@ function triggerDeath() {
   img.classList.remove('bounce','sleeping','shake');
   img.classList.add('dead-img');
   document.getElementById('speechBubble').textContent = rand(MSG.death);
+  document.querySelector('#deathOverlay .death-msg').textContent = `😢 ${catName}走了...`;
   document.getElementById('deathOverlay').classList.add('visible');
   document.querySelectorAll('.action-btn').forEach(b=>b.disabled=true);
   document.body.className = 'mood-dead';
+  updateCatName();
   playSound('death');
   saveState();
 }
@@ -563,9 +565,11 @@ function updateUI() {
   const state = getCatState();
   const isSick = checkSick();
   updateCatImage();
+  updateCatName();
   document.getElementById('catStatus').textContent = STATE_LABEL[state]||'開心';
   document.body.className = STATE_MOOD[state]||'';
 
+  document.getElementById('sickWarning').textContent = `🤒 ${catName}生病了！趕快帶去醫院！`;
   document.getElementById('sickWarning').classList.toggle('visible', isSick);
   document.getElementById('btnHospital').classList.toggle('visible', isSick || stats.health<60);
   document.getElementById('btnSleep').classList.toggle('visible', stats.energy<35);
@@ -684,7 +688,7 @@ function poopCat() {
   playSound('angry'); showReaction('poop'); startCooldown('poop'); updateUI();
 }
 function goHospital() {
-  if (!checkSick() && stats.health>=80) { showAlert('小橘現在很健康！'); return; }
+  if (!checkSick() && stats.health>=80) { showAlert(`${catName}現在很健康！`); return; }
   stats.health    = clamp(stats.health+60);
   stats.happiness = clamp(stats.happiness-5);
   stats.cleanliness = clamp(stats.cleanliness+10);
