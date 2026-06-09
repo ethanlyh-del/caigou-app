@@ -159,6 +159,9 @@
     .stat-bar { height:100%; border-radius:5px; transition:width 0.6s cubic-bezier(0.4,0,0.2,1), background-color 0.6s; }
     .stat-value { font-size:0.75rem; color:#bbb; width:24px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; }
     .stat-row.health .stat-bar-bg { border: 1px solid #ffd0d0; }
+    .intimacy-row { margin-top: 2px; }
+    .intimacy-hearts { flex:1; font-size:0.85rem; letter-spacing:1px; }
+    .intimacy-val { width:32px; color:#e91e63; font-weight:600; }
 
     /* Sick warning */
     .sick-warning {
@@ -316,6 +319,11 @@
       <div class="stat-bar-bg"><div class="stat-bar" id="bar-energy"></div></div>
       <span class="stat-value" id="val-energy">60</span>
     </div>
+    <div class="stat-row intimacy-row">
+      <span class="stat-icon">💝</span><span class="stat-label">親密度</span>
+      <div class="intimacy-hearts" id="intimacyHearts"></div>
+      <span class="stat-value intimacy-val" id="val-intimacy">0</span>
+    </div>
   </div>
 
   <div class="alert" id="alertMsg"></div>
@@ -439,7 +447,7 @@ function selectCatType(type) {
 }
 
 function defaultStats() {
-  return { fullness:80, cleanliness:90, happiness:75, energy:60, health:100 };
+  return { fullness:80, cleanliness:90, happiness:75, energy:60, health:100, intimacy:0 };
 }
 
 function loadState() {
@@ -462,6 +470,7 @@ function loadState() {
         happiness:   clamp(s.happiness   - elapsed/DECAY.happiness),
         energy:      clamp(s.energy      + elapsed/E_RESTORE),
         health:      s.health ?? 100,
+        intimacy:    s.intimacy ?? 0,
       };
       // Apply sick health decay retroactively
       if (!isDead) {
@@ -661,6 +670,12 @@ function updateUI() {
   updateCatName();
   const days = Math.floor((Date.now()-new Date(birthDate))/86400000)+1;
   document.getElementById('catAge').textContent = `第 ${days} 天 · 小貓咪`;
+
+  const iv = stats.intimacy;
+  document.getElementById('val-intimacy').textContent = iv;
+  const filled = Math.min(Math.floor(iv/10), 5);
+  document.getElementById('intimacyHearts').textContent = '♥'.repeat(filled) + '♡'.repeat(5-filled);
+
   saveState();
 }
 
@@ -678,6 +693,7 @@ function feedCat() {
   if (stats.fullness>=98) { showAlert('我已經很飽了！'); return; }
   stats.fullness  = clamp(stats.fullness+30);
   stats.happiness = clamp(stats.happiness+5);
+  stats.intimacy  = Math.max(0, stats.intimacy+1);
   animateCat('bounce'); showMessage(rand(MSG.feed));
   spawnEffect('🍣'); spawnEffect('✨',22);
   playSound('happy'); showReaction('feed'); startCooldown('feed'); updateUI();
@@ -686,6 +702,7 @@ function cleanCat() {
   if (stats.cleanliness>=96) { showAlert('我已經很乾淨了！'); return; }
   stats.cleanliness = clamp(stats.cleanliness+55);
   stats.happiness   = clamp(stats.happiness+10);
+  stats.intimacy    = Math.max(0, stats.intimacy+1);
   animateCat('bounce'); showMessage(rand(MSG.clean));
   spawnEffect('✨'); spawnEffect('💧',22);
   playSound('meow'); startCooldown('clean'); updateUI();
@@ -694,6 +711,7 @@ function petCat() {
   if (stats.energy<8) { showAlert('太累了，想睡覺...'); return; }
   stats.happiness = clamp(stats.happiness+18);
   stats.energy    = clamp(stats.energy-3);
+  stats.intimacy  = Math.max(0, stats.intimacy+1);
   animateCat('bounce'); showMessage(rand(MSG.pet));
   spawnEffect('💕'); spawnEffect('💗',22);
   playSound('happy'); showReaction('pet'); startCooldown('pet'); updateUI();
@@ -704,12 +722,14 @@ function playCat() {
   stats.happiness = clamp(stats.happiness+25);
   stats.energy    = clamp(stats.energy-20);
   stats.fullness  = clamp(stats.fullness-10);
+  stats.intimacy  = Math.max(0, stats.intimacy+1);
   animateCat('bounce'); showMessage(rand(MSG.play));
   spawnEffect('🎾'); spawnEffect('⭐',22);
   playSound('play'); startCooldown('play'); updateUI();
 }
 function scareCat() {
   stats.happiness = clamp(stats.happiness-20);
+  stats.intimacy  = Math.max(0, stats.intimacy-20);
   reactionActive=true;
   document.getElementById('catImg').src = STATE_IMG.unhappy;
   document.body.className='mood-angry';
@@ -722,6 +742,7 @@ function scareCat() {
 function hitCat() {
   stats.health    = clamp(stats.health-20);
   stats.happiness = clamp(stats.happiness-15);
+  stats.intimacy  = Math.max(0, stats.intimacy-20);
   startCooldown('hit');
 
   const clawBack = Math.random() < 0.3;
@@ -752,6 +773,7 @@ function hitCat() {
 function poopCat() {
   stats.cleanliness = clamp(stats.cleanliness-30);
   stats.happiness   = clamp(stats.happiness-10);
+  stats.intimacy    = Math.max(0, stats.intimacy-20);
   animateCat('shake'); showMessage(rand(MSG.poop));
   spawnEffect('💩'); spawnEffect('🤢',22);
   playSound('angry'); showReaction('poop'); startCooldown('poop'); updateUI();
