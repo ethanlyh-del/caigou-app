@@ -513,7 +513,7 @@ function loadState() {
           // Cat became sick when the SECOND stat crossed 30 (index [1])
           const sickStarted  = onsets.length >= 2 ? onsets[1] : 0;
           const sickDuration = Math.max(0, elapsed - sickStarted);
-          stats.health = clamp((s.health ?? 100) - sickDuration / 120);
+          stats.health = clamp((s.health ?? 100) - sickDuration / 240);
           if (stats.health <= 0) { stats.health = 0; isDead = true; }
         }
       }
