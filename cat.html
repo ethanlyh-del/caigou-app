@@ -98,7 +98,15 @@
     .nc-cat-opt span { font-size: 0.9rem; font-weight: 600; color: #555; }
 
     /* ── Header ─────────────────────────────────────────────────── */
-    .header { text-align: center; margin-bottom: 10px; }
+    .header { display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; position:relative; }
+    .change-cat-btn {
+      position:absolute; right:0; top:50%; transform:translateY(-50%);
+      padding:4px 10px; font-size:0.75rem; font-weight:600;
+      background:#f5f5f5; color:#888; border:1px solid #e0e0e0;
+      border-radius:20px; cursor:pointer; white-space:nowrap;
+      transition: background 0.15s;
+    }
+    .change-cat-btn:active { background:#ebebeb; }
     .cat-name { font-size: 1.1rem; font-weight: 700; color: #333; transition: color 0.4s; }
     .cat-name.stray { color: #9e9e9e; }
     .cat-name .stray-tag {
@@ -294,6 +302,7 @@
     <div class="header">
       <div class="cat-name" id="catNameDisplay">🐾 小橘</div>
       <div class="cat-age" id="catAge">第 1 天 · 小貓咪</div>
+      <button class="change-cat-btn" onclick="changeCat()">🔄 換貓</button>
     </div>
 
     <div class="cat-area" id="catArea">
@@ -642,6 +651,11 @@ function triggerDeath() {
   updateCatName();
   playSound('death');
   saveState();
+}
+
+function changeCat() {
+  if (!confirm('確定要換一隻新貓咪嗎？目前的進度會消失喔！')) return;
+  restartCat();
 }
 
 function restartCat() {
