@@ -13,7 +13,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: linear-gradient(160deg, #ffecd2 0%, #fcb69f 100%);
-      min-height: 100vh;
+      height: 100dvh; overflow: hidden;
       display: flex; align-items: center; justify-content: center;
       padding: 16px;
       transition: background 1.2s ease;
@@ -29,9 +29,21 @@
       background: rgba(255,255,255,0.93);
       border-radius: 28px;
       box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-      padding: 18px 18px 22px;
+      padding: 0;
       width: 100%; max-width: 380px;
+      height: calc(100dvh - 32px);
       position: relative;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .cat-top {
+      flex-shrink: 0;
+      padding: 18px 18px 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .scroll-panel {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      padding: 10px 18px 22px;
+      -webkit-overflow-scrolling: touch;
     }
 
     /* ── Naming Screen ─────────────────────────────────────────── */
@@ -67,8 +79,34 @@
     }
     .name-card .nc-btn:active { background: #f5a070; }
 
+    .nc-choose-title { font-size: 0.9rem; color: #888; font-weight: 600; }
+    .nc-cat-options {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%;
+    }
+    .nc-cat-opt {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 8px; padding: 12px 8px; border-radius: 16px;
+      border: 3px solid #f0e0e0; cursor: pointer; transition: all 0.2s;
+      background: #fafafa;
+    }
+    .nc-cat-opt:active { transform: scale(0.97); }
+    .nc-cat-opt.selected {
+      border-color: #fcb69f; background: #fff5f0;
+      box-shadow: 0 4px 14px rgba(252,182,159,0.4);
+    }
+    .nc-cat-opt img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; }
+    .nc-cat-opt span { font-size: 0.9rem; font-weight: 600; color: #555; }
+
     /* ── Header ─────────────────────────────────────────────────── */
-    .header { text-align: center; margin-bottom: 10px; }
+    .header { display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; position:relative; }
+    .change-cat-btn {
+      position:absolute; right:0; top:50%; transform:translateY(-50%);
+      padding:4px 10px; font-size:0.75rem; font-weight:600;
+      background:#f5f5f5; color:#888; border:1px solid #e0e0e0;
+      border-radius:20px; cursor:pointer; white-space:nowrap;
+      transition: background 0.15s;
+    }
+    .change-cat-btn:active { background:#ebebeb; }
     .cat-name { font-size: 1.1rem; font-weight: 700; color: #333; transition: color 0.4s; }
     .cat-name.stray { color: #9e9e9e; }
     .cat-name .stray-tag {
@@ -133,7 +171,7 @@
     @keyframes float-up { 0%{opacity:1;transform:translateY(0) scale(0.8)} 30%{opacity:1;transform:translateY(-20px) scale(1.2)} 100%{opacity:0;transform:translateY(-78px) scale(0.9)} }
 
     /* Stats */
-    .stats { margin-bottom:14px; display:flex; flex-direction:column; gap:9px; }
+    .stats { margin-bottom:12px; display:flex; flex-direction:column; gap:7px; }
     .stat-row { display:flex; align-items:center; gap:8px; }
     .stat-icon  { font-size:16px; width:20px; flex-shrink:0; }
     .stat-label { font-size:0.79rem; color:#666; width:50px; flex-shrink:0; }
@@ -141,6 +179,9 @@
     .stat-bar { height:100%; border-radius:5px; transition:width 0.6s cubic-bezier(0.4,0,0.2,1), background-color 0.6s; }
     .stat-value { font-size:0.75rem; color:#bbb; width:24px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; }
     .stat-row.health .stat-bar-bg { border: 1px solid #ffd0d0; }
+    .intimacy-row { margin-top: 2px; }
+    .intimacy-hearts { flex:1; font-size:0.85rem; letter-spacing:1px; }
+    .intimacy-val { width:32px; color:#e91e63; font-weight:600; }
 
     /* Sick warning */
     .sick-warning {
@@ -155,15 +196,15 @@
     /* Buttons */
     .actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .action-btn {
-      padding:12px 8px 10px; border:none; border-radius:14px;
-      cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;
+      padding:9px 6px 8px; border:none; border-radius:14px;
+      cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px;
       transition:transform 0.12s, opacity 0.2s;
       -webkit-tap-highlight-color:transparent;
       position:relative; overflow:hidden;
     }
     .action-btn:active   { transform:scale(0.93); }
     .action-btn:disabled { opacity:0.4; cursor:default; transform:none !important; }
-    .action-btn .btn-icon  { font-size:26px; }
+    .action-btn .btn-icon  { font-size:22px; }
     .action-btn .btn-label { font-size:0.78rem; font-weight:600; }
     .btn-feed   { background:#fff3e0; color:#e65100; }
     .btn-clean  { background:#e3f2fd; color:#1565c0; }
@@ -176,6 +217,29 @@
     .btn-hospital.visible { display:flex; }
     .btn-sleep  { background:#ede7f6; color:#4527a0; grid-column:1/-1; display:none; }
     .btn-sleep.visible { display:flex; }
+
+    /* Chat */
+    .chat-section {
+      margin-top: 14px; padding-top: 12px;
+      border-top: 1px dashed #eee;
+    }
+    .chat-section-title {
+      font-size: 0.78rem; color: #aaa; text-align: center; margin-bottom: 8px;
+    }
+    .chat-row { display:flex; gap:8px; align-items:center; }
+    .chat-input {
+      flex:1; padding:9px 14px; border:2px solid #f0e0e0;
+      border-radius:20px; font-size:0.88rem; outline:none;
+      transition:border-color 0.2s; background:#fafafa;
+    }
+    .chat-input:focus { border-color:#fcb69f; background:white; }
+    .chat-send-btn {
+      padding:9px 16px; background:#fcb69f; color:white;
+      border:none; border-radius:20px; font-size:0.88rem;
+      font-weight:600; cursor:pointer; white-space:nowrap;
+      transition:background 0.15s; flex-shrink:0;
+    }
+    .chat-send-btn:active { background:#f5a070; }
 
     .cooldown-bar {
       position:absolute; bottom:0; left:0; height:3px;
@@ -212,8 +276,38 @@
 <div id="nameScreen">
   <div class="name-card">
     <div class="nc-title">🐾 歡迎來到虛擬貓咪！</div>
-    <img class="nc-img" src="cats/kaixin.png" alt="貓咪">
-    <div class="nc-sub">你撿到了一隻流浪貓<br>幫牠取個名字吧～</div>
+    <div class="nc-choose-title">選擇你要收養的貓咪</div>
+    <div class="nc-cat-options">
+      <div class="nc-cat-opt selected" data-type="white" onclick="selectCatType('white')">
+        <img src="cats/kaixin.png" alt="白貓">
+        <span>白貓</span>
+      </div>
+      <div class="nc-cat-opt" data-type="orange" onclick="selectCatType('orange')">
+        <img src="cats/orange/kaixin.png" alt="橘貓">
+        <span>橘貓</span>
+      </div>
+      <div class="nc-cat-opt" data-type="sanhua" onclick="selectCatType('sanhua')">
+        <img src="cats/sanhua/kaixin.png" alt="三花貓">
+        <span>三花</span>
+      </div>
+      <div class="nc-cat-opt" data-type="brown" onclick="selectCatType('brown')">
+        <img src="cats/brown/kaixin.png" alt="棕條紋貓">
+        <span>棕條紋</span>
+      </div>
+      <div class="nc-cat-opt" data-type="blue" onclick="selectCatType('blue')">
+        <img src="cats/blue/kaixin.png" alt="藍貓">
+        <span>藍貓</span>
+      </div>
+      <div class="nc-cat-opt" data-type="sphinx" onclick="selectCatType('sphinx')">
+        <img src="cats/sphinx/kaixin.png" alt="無毛貓">
+        <span>無毛貓</span>
+      </div>
+      <div class="nc-cat-opt" data-type="kuro" onclick="selectCatType('kuro')">
+        <img src="cats/kuro/kaixin.png" alt="黑貓">
+        <span>黑貓</span>
+      </div>
+    </div>
+    <div class="nc-sub">幫牠取個名字吧～</div>
     <input type="text" id="nameInput" placeholder="輸入貓咪的名字" maxlength="10"
       onkeydown="if(event.key==='Enter')confirmName()">
     <button class="nc-btn" onclick="confirmName()">確認收養 ✓</button>
@@ -227,20 +321,22 @@
     <button class="restart-btn" onclick="restartCat()">重新認養新貓咪 🐱</button>
   </div>
 
-  <div class="header">
-    <div class="cat-name" id="catNameDisplay">🐾 小橘</div>
-    <div class="cat-age" id="catAge">第 1 天 · 小貓咪</div>
-  </div>
-
-  <div class="cat-area" id="catArea">
-    <div class="speech-bubble" id="speechBubble">呼嚕呼嚕♪</div>
-    <div class="cat-wrap">
-      <img id="catImg" src="cats/kaixin.png" alt="小橘" onclick="petCat()">
-      <div class="cat-status" id="catStatus">開心</div>
+  <div class="cat-top">
+    <div class="header">
+      <div class="cat-name" id="catNameDisplay">🐾 小橘</div>
+      <div class="cat-age" id="catAge">第 1 天 · 小貓咪</div>
+      <button class="change-cat-btn" onclick="changeCat()">🔄 換貓</button>
     </div>
-  </div>
 
-  <div class="sick-warning" id="sickWarning">🤒 小橘生病了！趕快帶去醫院！</div>
+    <div class="cat-area" id="catArea">
+      <div class="speech-bubble" id="speechBubble">呼嚕呼嚕♪</div>
+      <div class="cat-wrap">
+        <img id="catImg" src="cats/kaixin.png" alt="小橘" onclick="petCat()">
+        <div class="cat-status" id="catStatus">開心</div>
+      </div>
+    </div>
+
+    <div class="sick-warning" id="sickWarning">🤒 小橘生病了！趕快帶去醫院！</div>
 
   <div class="stats">
     <div class="stat-row health">
@@ -268,8 +364,15 @@
       <div class="stat-bar-bg"><div class="stat-bar" id="bar-energy"></div></div>
       <span class="stat-value" id="val-energy">60</span>
     </div>
+    <div class="stat-row intimacy-row">
+      <span class="stat-icon">💝</span><span class="stat-label">親密度</span>
+      <div class="intimacy-hearts" id="intimacyHearts"></div>
+      <span class="stat-value intimacy-val" id="val-intimacy">0</span>
+    </div>
   </div>
+  </div><!-- /cat-top -->
 
+  <div class="scroll-panel">
   <div class="alert" id="alertMsg"></div>
 
   <div class="actions">
@@ -314,17 +417,37 @@
       <div class="cooldown-bar" id="cd-sleep" style="width:0"></div>
     </button>
   </div>
+
+  <div class="chat-section">
+    <div class="chat-section-title">💬 跟貓咪說說話</div>
+    <div class="chat-row">
+      <input type="text" class="chat-input" id="chatInput"
+             placeholder="輸入訊息..." maxlength="40"
+             onkeydown="if(event.key==='Enter')chatWithCat()">
+      <button class="chat-send-btn" onclick="chatWithCat()">送出</button>
+    </div>
+  </div>
+  </div><!-- scroll-panel -->
 </div>
 
 <script>
 // ── IMAGES ───────────────────────────────────────────────────────────────────
-const STATE_IMG = {
-  happy:'cats/kaixin.png', ecstatic:'cats/xihuan.png',
-  sleepy:'cats/pilei.png', hungry:'cats/duzi.png',
-  dirty:'cats/shengqi.png', unhappy:'cats/shengqi.png',
-  sick:'cats/sick.png', sickbed:'cats/sickbed.png', dead:'cats/dead.png',
-};
-const REACT_IMG = { pet:'cats/shufu.png', feed:'cats/chbao.png', hit:'cats/blood.png', poop:'cats/dupi.png', claw:'cats/claw.png' };
+let catType = 'white';
+let STATE_IMG, REACT_IMG;
+
+function buildImgMaps() {
+  const folders = { kuro:'cats/kuro', sanhua:'cats/sanhua', orange:'cats/orange', brown:'cats/brown', blue:'cats/blue', sphinx:'cats/sphinx' };
+  const f = folders[catType] || 'cats';
+  STATE_IMG = {
+    happy:`${f}/kaixin.png`, ecstatic:`${f}/xihuan.png`,
+    sleepy:`${f}/pilei.png`, hungry:`${f}/duzi.png`,
+    dirty:`${f}/shengqi.png`, unhappy:`${f}/shengqi.png`,
+    sick:`${f}/sick.png`, sickbed:`${f}/sickbed.png`, dead:`${f}/dead.png`,
+  };
+  REACT_IMG = { pet:`${f}/shufu.png`, feed:`${f}/chbao.png`, hit:`${f}/blood.png`, poop:`${f}/dupi.png`, claw:`${f}/claw.png` };
+}
+buildImgMaps();
+
 let reactionActive=false, reactionTm;
 
 function showReaction(type, ms=2500) {
@@ -340,9 +463,11 @@ function updateCatImage() {
 }
 
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
-const DECAY = { fullness:30, cleanliness:45, happiness:60 };
+const DECAY = { fullness:300, cleanliness:450, happiness:600 };
 const E_RESTORE = 120;
-const COOLDOWNS = { feed:3000, clean:5000, pet:1500, play:4000, scare:8000, hit:5000, poop:5000, hospital:30000, sleep:20000 };
+const SICK_DRAIN   = 1800; // seconds per 1 health point lost when sick (offline: cat survives ~27h)
+const STARVE_DRAIN = 1200; // seconds per 1 health point lost when fullness=0
+const COOLDOWNS ={ feed:3000, clean:5000, pet:1500, play:4000, scare:8000, hit:5000, poop:5000, hospital:30000, sleep:20000 };
 const cdEnd = {};
 
 const MSG = {
@@ -369,13 +494,61 @@ const MSG = {
   sleep:   ['Zzz...','（蜷成一團）','睡一下就好...'],
   wake:    ['（打哈欠）','睡飽了！','又有精神了！'],
   death:   ['再見了... 喵...'],
+  dodge:   ['哼！才不讓你！','嗖——躲開了！','哼，想傷害我？沒門！','刷——閃過了！'],
+  angryBite:['哎！被抓了！','啊！貓抓傷了！','嗚——它抓得好用力！'],
+  chatPos:  ['喵♡～','嗯嗯嗯♡（蹭蹭）','我也最愛你了！','呼嚕呼嚕～謝謝！','（搖尾巴）✨'],
+  chatNeg:  ['哼！！','你壞壞！（生氣）','喵—！不理你了！','哼，討厭！','（炸毛）'],
+  chatNeu:  ['喵？（歪頭）','嗯喵...','（用眼神看著你）','呼嚕...','喵。'],
 };
 
 // ── STATE ────────────────────────────────────────────────────────────────────
 let stats, birthDate, lastSaved, isDead=false, catName='小橘', wasStray=false;
 
+function selectCatType(type) {
+  catType = type;
+  document.querySelectorAll('.nc-cat-opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.type === type);
+  });
+}
+
 function defaultStats() {
-  return { fullness:80, cleanliness:90, happiness:75, energy:60, health:100 };
+  return { fullness:80, cleanliness:90, happiness:75, energy:60, health:100, intimacy:0 };
+}
+
+// ── OFFLINE DECAY ─────────────────────────────────────────────────────────────
+// Apply elapsed-time decay to a saved stats snapshot.
+// Returns new stats object; health may be negative (caller must clamp + check death).
+function applyOfflineDecay(s, elapsed) {
+  const n = {
+    fullness:    clamp(s.fullness    - elapsed / DECAY.fullness),
+    cleanliness: clamp(s.cleanliness - elapsed / DECAY.cleanliness),
+    happiness:   clamp(s.happiness   - elapsed / DECAY.happiness),
+    energy:      clamp(s.energy      + elapsed / E_RESTORE),
+    health:      s.health  ?? 100,
+    intimacy:    s.intimacy ?? 0,
+  };
+
+  // Retroactive sick drain — only count time cat was ACTUALLY sick (2+ stats < 30)
+  if (checkSick(n)) {
+    const onsets = [];
+    if (n.fullness    < 30) onsets.push(s.fullness    > 30 ? (s.fullness    - 30) * DECAY.fullness    : 0);
+    if (n.cleanliness < 30) onsets.push(s.cleanliness > 30 ? (s.cleanliness - 30) * DECAY.cleanliness : 0);
+    if (n.happiness   < 30) onsets.push(s.happiness   > 30 ? (s.happiness   - 30) * DECAY.happiness   : 0);
+    if (n.energy      < 30) onsets.push(0);
+    onsets.sort((a, b) => a - b);
+    const sickStarted  = onsets.length >= 2 ? onsets[1] : 0;
+    const sickDuration = Math.max(0, elapsed - sickStarted);
+    n.health -= sickDuration / SICK_DRAIN;
+  }
+
+  // Retroactive starvation drain — only time fullness was actually 0
+  if (n.fullness === 0) {
+    const starveStarted  = s.fullness > 0 ? s.fullness * DECAY.fullness : 0;
+    const starveDuration = Math.max(0, elapsed - starveStarted);
+    n.health -= starveDuration / STARVE_DRAIN;
+  }
+
+  return n;
 }
 
 function loadState() {
@@ -383,29 +556,26 @@ function loadState() {
   if (raw) {
     try {
       const d = JSON.parse(raw);
-      catName   = d.catName || '小橘';
+      catType   = d.catType || 'white';
+      const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕', blue:'小藍', sphinx:'無毛' };
+      catName   = d.catName || defaults[catType] || '小白';
+      buildImgMaps();
       birthDate = d.birthDate;
       isDead    = d.isDead || false;
       lastSaved = d.lastSaved || Date.now();
       const elapsed = (Date.now()-lastSaved)/1000;
       const s = d.stats;
-      stats = {
-        fullness:    clamp(s.fullness    - elapsed/DECAY.fullness),
-        cleanliness: clamp(s.cleanliness - elapsed/DECAY.cleanliness),
-        happiness:   clamp(s.happiness   - elapsed/DECAY.happiness),
-        energy:      clamp(s.energy      + elapsed/E_RESTORE),
-        health:      s.health ?? 100,
-      };
-      // Apply sick health decay retroactively
       if (!isDead) {
-        const isSickOnLoad = checkSick(stats);
-        if (isSickOnLoad) {
-          stats.health = clamp(stats.health - elapsed/20);
-          if (stats.health <= 0) { stats.health=0; isDead=true; }
-        }
+        const n = applyOfflineDecay(s, elapsed);
+        stats = n;
+        if (stats.health <= 0) { stats.health = 0; isDead = true; }
+      } else {
+        stats = { fullness: s.fullness ?? 0, cleanliness: s.cleanliness ?? 0,
+                  happiness: s.happiness ?? 0, energy: s.energy ?? 0,
+                  health: s.health ?? 0, intimacy: s.intimacy ?? 0 };
       }
       if (elapsed > 600 && !isDead)
-        setTimeout(() => showMessage(`你離開了 ${Math.round(elapsed/60)} 分鐘，小橘好想你！`), 600);
+        setTimeout(() => showMessage(`你離開了 ${Math.round(elapsed/60)} 分鐘，${catName}好想你！`), 600);
       return;
     } catch(e) {}
   }
@@ -416,16 +586,20 @@ function loadState() {
 
 function saveState() {
   lastSaved = Date.now();
-  localStorage.setItem('catData4', JSON.stringify({stats, birthDate, lastSaved, isDead, catName}));
+  localStorage.setItem('catData4', JSON.stringify({stats, birthDate, lastSaved, isDead, catName, catType}));
 }
 
 function confirmName() {
   const input = document.getElementById('nameInput').value.trim();
-  catName = input || '小橘';
+  const defaults = { kuro:'小黑', sanhua:'小花', orange:'小橘', brown:'小棕', blue:'小藍', sphinx:'無毛' };
+  catName = input || defaults[catType] || '小白';
+  buildImgMaps();
   document.getElementById('nameScreen').classList.add('hidden');
   birthDate = new Date().toISOString().split('T')[0];
   stats = defaultStats();
+  isDead = false;
   lastSaved = Date.now();
+  lastTick = Date.now(); // reset so naming-screen time doesn't count as decay
   saveState();
   updateUI(); refreshIdle();
 }
@@ -448,7 +622,7 @@ function getCatState() {
   if (f < 25)  return 'hungry';
   if (c < 25)  return 'dirty';
   if (h < 25)  return 'unhappy';
-  if (f>75&&c>75&&h>80&&e>65) return 'ecstatic';
+  if (f>75&&c>75&&h>80&&e>65 && stats.intimacy>=50) return 'ecstatic';
   return 'happy';
 }
 
@@ -539,11 +713,18 @@ function triggerDeath() {
   img.classList.remove('bounce','sleeping','shake');
   img.classList.add('dead-img');
   document.getElementById('speechBubble').textContent = rand(MSG.death);
+  document.querySelector('#deathOverlay .death-msg').textContent = `😢 ${catName}走了...`;
   document.getElementById('deathOverlay').classList.add('visible');
   document.querySelectorAll('.action-btn').forEach(b=>b.disabled=true);
   document.body.className = 'mood-dead';
+  updateCatName();
   playSound('death');
   saveState();
+}
+
+function changeCat() {
+  if (!confirm('確定要換一隻新貓咪嗎？目前的進度會消失喔！')) return;
+  restartCat();
 }
 
 function restartCat() {
@@ -563,9 +744,11 @@ function updateUI() {
   const state = getCatState();
   const isSick = checkSick();
   updateCatImage();
+  updateCatName();
   document.getElementById('catStatus').textContent = STATE_LABEL[state]||'開心';
   document.body.className = STATE_MOOD[state]||'';
 
+  document.getElementById('sickWarning').textContent = `🤒 ${catName}生病了！趕快帶去醫院！`;
   document.getElementById('sickWarning').classList.toggle('visible', isSick);
   document.getElementById('btnHospital').classList.toggle('visible', isSick || stats.health<60);
   document.getElementById('btnSleep').classList.toggle('visible', stats.energy<35);
@@ -588,6 +771,16 @@ function updateUI() {
   updateCatName();
   const days = Math.floor((Date.now()-new Date(birthDate))/86400000)+1;
   document.getElementById('catAge').textContent = `第 ${days} 天 · 小貓咪`;
+
+  const iv = stats.intimacy;
+  const ivEl = document.getElementById('val-intimacy');
+  ivEl.textContent = iv;
+  ivEl.style.color = iv < 0 ? '#e53935' : '#e91e63';
+  const filled = Math.max(0, Math.min(Math.floor(iv/10), 5));
+  document.getElementById('intimacyHearts').textContent = iv < 0
+    ? '💔'.repeat(Math.min(Math.ceil(Math.abs(iv)/10), 5))
+    : '♥'.repeat(filled) + '♡'.repeat(5-filled);
+
   saveState();
 }
 
@@ -601,29 +794,50 @@ function playSound(type) {
 }
 
 // ── ACTIONS ──────────────────────────────────────────────────────────────────
+function maybeAngryBite() {
+  if (stats.intimacy >= 0) return;
+  const chance = Math.min(0.7, 0.2 + Math.abs(stats.intimacy) * 0.01);
+  if (Math.random() < chance) {
+    showAlert(rand(MSG.angryBite));
+    spawnEffect('🐾'); spawnEffect('💢',22);
+    playSound('claw');
+  }
+}
+
+function maybeDodge() {
+  if (stats.intimacy >= 0 || Math.random() >= 0.5) return false;
+  animateCat('shake');
+  showMessage(rand(MSG.dodge));
+  spawnEffect('💨');
+  return true;
+}
+
 function feedCat() {
   if (stats.fullness>=98) { showAlert('我已經很飽了！'); return; }
   stats.fullness  = clamp(stats.fullness+30);
   stats.happiness = clamp(stats.happiness+5);
+  stats.intimacy  += 1;
   animateCat('bounce'); showMessage(rand(MSG.feed));
   spawnEffect('🍣'); spawnEffect('✨',22);
-  playSound('happy'); showReaction('feed'); startCooldown('feed'); updateUI();
+  playSound('happy'); showReaction('feed'); maybeAngryBite(); startCooldown('feed'); updateUI();
 }
 function cleanCat() {
   if (stats.cleanliness>=96) { showAlert('我已經很乾淨了！'); return; }
   stats.cleanliness = clamp(stats.cleanliness+55);
   stats.happiness   = clamp(stats.happiness+10);
+  stats.intimacy    += 1;
   animateCat('bounce'); showMessage(rand(MSG.clean));
   spawnEffect('✨'); spawnEffect('💧',22);
-  playSound('meow'); startCooldown('clean'); updateUI();
+  playSound('meow'); maybeAngryBite(); startCooldown('clean'); updateUI();
 }
 function petCat() {
   if (stats.energy<8) { showAlert('太累了，想睡覺...'); return; }
   stats.happiness = clamp(stats.happiness+18);
   stats.energy    = clamp(stats.energy-3);
+  stats.intimacy  += 1;
   animateCat('bounce'); showMessage(rand(MSG.pet));
   spawnEffect('💕'); spawnEffect('💗',22);
-  playSound('happy'); showReaction('pet'); startCooldown('pet'); updateUI();
+  playSound('happy'); showReaction('pet'); maybeAngryBite(); startCooldown('pet'); updateUI();
 }
 function playCat() {
   if (stats.energy<15)   { showAlert('太累了，沒力氣玩...'); return; }
@@ -631,12 +845,15 @@ function playCat() {
   stats.happiness = clamp(stats.happiness+25);
   stats.energy    = clamp(stats.energy-20);
   stats.fullness  = clamp(stats.fullness-10);
+  stats.intimacy  += 1;
   animateCat('bounce'); showMessage(rand(MSG.play));
   spawnEffect('🎾'); spawnEffect('⭐',22);
   playSound('play'); startCooldown('play'); updateUI();
 }
 function scareCat() {
+  if (maybeDodge()) { startCooldown('scare'); updateUI(); return; }
   stats.happiness = clamp(stats.happiness-20);
+  stats.intimacy  -= 20;
   reactionActive=true;
   document.getElementById('catImg').src = STATE_IMG.unhappy;
   document.body.className='mood-angry';
@@ -647,8 +864,10 @@ function scareCat() {
   reactionTm = setTimeout(()=>{ reactionActive=false; updateUI(); }, 2500);
 }
 function hitCat() {
+  if (maybeDodge()) { startCooldown('hit'); updateUI(); return; }
   stats.health    = clamp(stats.health-20);
   stats.happiness = clamp(stats.happiness-15);
+  stats.intimacy  -= 20;
   startCooldown('hit');
 
   const clawBack = Math.random() < 0.3;
@@ -677,14 +896,16 @@ function hitCat() {
   else updateUI();
 }
 function poopCat() {
+  if (maybeDodge()) { startCooldown('poop'); updateUI(); return; }
   stats.cleanliness = clamp(stats.cleanliness-30);
   stats.happiness   = clamp(stats.happiness-10);
+  stats.intimacy    -= 20;
   animateCat('shake'); showMessage(rand(MSG.poop));
   spawnEffect('💩'); spawnEffect('🤢',22);
   playSound('angry'); showReaction('poop'); startCooldown('poop'); updateUI();
 }
 function goHospital() {
-  if (!checkSick() && stats.health>=80) { showAlert('小橘現在很健康！'); return; }
+  if (!checkSick() && stats.health>=80) { showAlert(`${catName}現在很健康！`); return; }
   stats.health    = clamp(stats.health+60);
   stats.happiness = clamp(stats.happiness-5);
   stats.cleanliness = clamp(stats.cleanliness+10);
@@ -701,7 +922,7 @@ function goHospital() {
   }, 3000);
 }
 function sleepCat() {
-  stats.energy = clamp(stats.energy+45);
+  stats.energy = 100;
   animateCat('sleeping'); showMessage(rand(MSG.sleep));
   spawnEffect('💤'); spawnEffect('⭐',22); startCooldown('sleep');
   setTimeout(()=>{
@@ -716,20 +937,21 @@ let lastTick = Date.now();
 function tick() {
   if (isDead) return;
   const now = Date.now();
-  const e = (now-lastTick)/1000; lastTick=now;
+  const e = Math.min((now-lastTick)/1000, 30); lastTick=now; // cap delta at 30s
 
   stats.fullness    = clamp(stats.fullness    - e/DECAY.fullness);
   stats.cleanliness = clamp(stats.cleanliness - e/DECAY.cleanliness);
   stats.happiness   = clamp(stats.happiness   - e/DECAY.happiness);
   if (stats.energy<100) stats.energy = clamp(stats.energy + e/E_RESTORE);
 
-  const isSick = checkSick();
-  if (isSick) {
-    stats.health = clamp(stats.health - e/20);  // -1 per 20s when sick
-    if (stats.health<=0) { stats.health=0; triggerDeath(); return; }
-  } else if (stats.health<100) {
-    stats.health = clamp(stats.health + e/120); // slow recovery when healthy
-  }
+  const isSick     = checkSick();
+  const isStarving = stats.fullness === 0;
+  let healthDelta = 0;
+  if (isSick)                              healthDelta -= e / SICK_DRAIN;
+  if (isStarving)                          healthDelta -= e / STARVE_DRAIN;
+  if (!isSick && !isStarving && stats.health < 100) healthDelta += e / 120;
+  stats.health = clamp(stats.health + healthDelta);
+  if (stats.health <= 0) { stats.health = 0; triggerDeath(); return; }
   updateUI();
 }
 
@@ -746,6 +968,71 @@ if (!hasSave) {
 }
 setInterval(tick, 1000);
 setInterval(()=>{ if (!isDead) refreshIdle(); }, 9000);
+
+// ── VISIBILITY CHANGE (fix stats-not-updating on tab resume) ─────────────────
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    saveState(); // snapshot exact state at hide time
+  } else if (!isDead) {
+    // Apply any offline decay that accumulated while tab was hidden.
+    // lastTick is the reference: it freezes on iOS when tab is backgrounded.
+    const elapsed = (Date.now() - lastTick) / 1000;
+    if (elapsed > 5) {
+      const n = applyOfflineDecay(stats, elapsed);
+      stats = n;
+      lastTick = Date.now(); // prevent tick from double-applying
+      if (stats.health <= 0) {
+        stats.health = 0;
+        isDead = true;
+        triggerDeath();
+      } else {
+        if (elapsed > 120)
+          setTimeout(() => showMessage(`${catName}等你好久了！`), 300);
+        updateUI(); refreshIdle();
+      }
+    }
+  }
+});
+
+// ── CHAT ─────────────────────────────────────────────────────────────────────
+function chatWithCat() {
+  if (isDead) return;
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const posWords = ['愛','喜歡','可愛','棒','讚','乖','寶貝','親','漂亮','帥','美','想你','謝謝','抱抱','最愛','喜'];
+  const negWords = ['笨','臭','爛','蠢','討厭','壞','醜','吵','滾','廢物','豬','賤','垃圾','白癡','傻','混蛋','死貓','爬','難看'];
+
+  const isPos = posWords.some(w => text.includes(w));
+  const isNeg = negWords.some(w => text.includes(w));
+
+  if (isNeg && !isPos) {
+    stats.happiness = clamp(stats.happiness - 10);
+    stats.intimacy -= 5;
+    animateCat('shake');
+    showMessage(rand(MSG.chatNeg));
+    spawnEffect('💢');
+    playSound('angry');
+    document.body.className = 'mood-angry';
+    clearTimeout(reactionTm);
+    reactionActive = true;
+    reactionTm = setTimeout(() => { reactionActive = false; updateUI(); }, 2500);
+  } else if (isPos) {
+    stats.happiness = clamp(stats.happiness + 8);
+    stats.intimacy += 2;
+    animateCat('bounce');
+    showMessage(rand(MSG.chatPos));
+    spawnEffect('💕'); spawnEffect('✨', 22);
+    playSound('happy');
+    updateUI();
+  } else {
+    animateCat('bounce');
+    showMessage(rand(MSG.chatNeu));
+    spawnEffect('💭');
+  }
+}
 
 if ('serviceWorker' in navigator)
   navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister()));
