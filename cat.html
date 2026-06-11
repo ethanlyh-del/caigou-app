@@ -785,11 +785,16 @@ function updateUI() {
 }
 
 // ── SOUND ────────────────────────────────────────────────────────────────────
+const _audioPool = {}; // keeps Audio objects alive (prevents GC cutting off long sounds)
 function playSound(type) {
   try {
-    const src = (typeof CAT_SOUNDS!=='undefined') ? CAT_SOUNDS[type]||CAT_SOUNDS.meow : null;
+    const src = (typeof CAT_SOUNDS !== 'undefined') ? CAT_SOUNDS[type] || CAT_SOUNDS.meow : null;
     if (!src) return;
-    const a = new Audio(src); a.volume=0.75; a.play().catch(()=>{});
+    if (!_audioPool[type]) _audioPool[type] = new Audio(src);
+    const a = _audioPool[type];
+    a.currentTime = 0;
+    a.volume = 0.75;
+    a.play().catch(() => {});
   } catch(e) {}
 }
 
