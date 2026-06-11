@@ -894,7 +894,7 @@ function hitCat() {
   } else {
     animateCat('shake'); showMessage(rand(MSG.hit));
     spawnEffect('👊'); spawnEffect('💢',22);
-    playSound('hit'); showReaction('hit');
+    playSound('hit2'); showReaction('hit');
   }
 
   if (stats.health<=0) { stats.health=0; setTimeout(triggerDeath,1800); }
