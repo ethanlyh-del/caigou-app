@@ -824,7 +824,7 @@ function feedCat() {
   stats.intimacy  += 1;
   animateCat('bounce'); showMessage(rand(MSG.feed));
   spawnEffect('🍣'); spawnEffect('✨',22);
-  playSound('happy'); showReaction('feed'); maybeAngryBite(); startCooldown('feed'); updateUI();
+  playSound('feed'); showReaction('feed'); maybeAngryBite(); startCooldown('feed'); updateUI();
 }
 function cleanCat() {
   if (stats.cleanliness>=96) { showAlert('我已經很乾淨了！'); return; }
