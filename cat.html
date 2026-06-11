@@ -218,6 +218,29 @@
     .btn-sleep  { background:#ede7f6; color:#4527a0; grid-column:1/-1; display:none; }
     .btn-sleep.visible { display:flex; }
 
+    /* Chat */
+    .chat-section {
+      margin-top: 14px; padding-top: 12px;
+      border-top: 1px dashed #eee;
+    }
+    .chat-section-title {
+      font-size: 0.78rem; color: #aaa; text-align: center; margin-bottom: 8px;
+    }
+    .chat-row { display:flex; gap:8px; align-items:center; }
+    .chat-input {
+      flex:1; padding:9px 14px; border:2px solid #f0e0e0;
+      border-radius:20px; font-size:0.88rem; outline:none;
+      transition:border-color 0.2s; background:#fafafa;
+    }
+    .chat-input:focus { border-color:#fcb69f; background:white; }
+    .chat-send-btn {
+      padding:9px 16px; background:#fcb69f; color:white;
+      border:none; border-radius:20px; font-size:0.88rem;
+      font-weight:600; cursor:pointer; white-space:nowrap;
+      transition:background 0.15s; flex-shrink:0;
+    }
+    .chat-send-btn:active { background:#f5a070; }
+
     .cooldown-bar {
       position:absolute; bottom:0; left:0; height:3px;
       background:rgba(0,0,0,0.18); border-radius:0 0 14px 14px;
@@ -394,6 +417,16 @@
       <div class="cooldown-bar" id="cd-sleep" style="width:0"></div>
     </button>
   </div>
+
+  <div class="chat-section">
+    <div class="chat-section-title">💬 跟貓咪說說話</div>
+    <div class="chat-row">
+      <input type="text" class="chat-input" id="chatInput"
+             placeholder="輸入訊息..." maxlength="40"
+             onkeydown="if(event.key==='Enter')chatWithCat()">
+      <button class="chat-send-btn" onclick="chatWithCat()">送出</button>
+    </div>
+  </div>
   </div><!-- scroll-panel -->
 </div>
 
@@ -432,7 +465,9 @@ function updateCatImage() {
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 const DECAY = { fullness:300, cleanliness:450, happiness:600 };
 const E_RESTORE = 120;
-const COOLDOWNS = { feed:3000, clean:5000, pet:1500, play:4000, scare:8000, hit:5000, poop:5000, hospital:30000, sleep:20000 };
+const SICK_DRAIN   = 1800; // seconds per 1 health point lost when sick (offline: cat survives ~27h)
+const STARVE_DRAIN = 1200; // seconds per 1 health point lost when fullness=0
+const COOLDOWNS ={ feed:3000, clean:5000, pet:1500, play:4000, scare:8000, hit:5000, poop:5000, hospital:30000, sleep:20000 };
 const cdEnd = {};
 
 const MSG = {
@@ -461,6 +496,9 @@ const MSG = {
   death:   ['再見了... 喵...'],
   dodge:   ['哼！才不讓你！','嗖——躲開了！','哼，想傷害我？沒門！','刷——閃過了！'],
   angryBite:['哎！被抓了！','啊！貓抓傷了！','嗚——它抓得好用力！'],
+  chatPos:  ['喵♡～','嗯嗯嗯♡（蹭蹭）','我也最愛你了！','呼嚕呼嚕～謝謝！','（搖尾巴）✨'],
+  chatNeg:  ['哼！！','你壞壞！（生氣）','喵—！不理你了！','哼，討厭！','（炸毛）'],
+  chatNeu:  ['喵？（歪頭）','嗯喵...','（用眼神看著你）','呼嚕...','喵。'],
 };
 
 // ── STATE ────────────────────────────────────────────────────────────────────
@@ -477,6 +515,45 @@ function defaultStats() {
   return { fullness:80, cleanliness:90, happiness:75, energy:60, health:100, intimacy:0 };
 }
 
+// ── OFFLINE DECAY ─────────────────────────────────────────────────────────────
+// Apply elapsed-time decay to a saved stats snapshot.
+// Returns new stats object; health may be negative (caller must clamp + check death).
+function applyOfflineDecay(s, elapsed) {
+  const n = {
+    fullness:    clamp(s.fullness    - elapsed / DECAY.fullness),
+    cleanliness: clamp(s.cleanliness - elapsed / DECAY.cleanliness),
+    happiness:   clamp(s.happiness   - elapsed / DECAY.happiness),
+    energy:      clamp(s.energy      + elapsed / E_RESTORE),
+    health:      s.health  ?? 100,
+    intimacy:    s.intimacy ?? 0,
+  };
+  REACT_IMG = { pet:`${f}/shufu.png`, feed:`${f}/chbao.png`, hit:`${f}/blood.png`, poop:`${f}/dupi.png`, claw:`${f}/claw.png` };
+}
+buildImgMaps();
+
+  // Retroactive sick drain — only count time cat was ACTUALLY sick (2+ stats < 30)
+  if (checkSick(n)) {
+    const onsets = [];
+    if (n.fullness    < 30) onsets.push(s.fullness    > 30 ? (s.fullness    - 30) * DECAY.fullness    : 0);
+    if (n.cleanliness < 30) onsets.push(s.cleanliness > 30 ? (s.cleanliness - 30) * DECAY.cleanliness : 0);
+    if (n.happiness   < 30) onsets.push(s.happiness   > 30 ? (s.happiness   - 30) * DECAY.happiness   : 0);
+    if (n.energy      < 30) onsets.push(0);
+    onsets.sort((a, b) => a - b);
+    const sickStarted  = onsets.length >= 2 ? onsets[1] : 0;
+    const sickDuration = Math.max(0, elapsed - sickStarted);
+    n.health -= sickDuration / SICK_DRAIN;
+  }
+
+  // Retroactive starvation drain — only time fullness was actually 0
+  if (n.fullness === 0) {
+    const starveStarted  = s.fullness > 0 ? s.fullness * DECAY.fullness : 0;
+    const starveDuration = Math.max(0, elapsed - starveStarted);
+    n.health -= starveDuration / STARVE_DRAIN;
+  }
+
+  return n;
+}
+
 function loadState() {
   const raw = localStorage.getItem('catData4');
   if (raw) {
@@ -491,31 +568,14 @@ function loadState() {
       lastSaved = d.lastSaved || Date.now();
       const elapsed = (Date.now()-lastSaved)/1000;
       const s = d.stats;
-      stats = {
-        fullness:    clamp(s.fullness    - elapsed/DECAY.fullness),
-        cleanliness: clamp(s.cleanliness - elapsed/DECAY.cleanliness),
-        happiness:   clamp(s.happiness   - elapsed/DECAY.happiness),
-        energy:      clamp(s.energy      + elapsed/E_RESTORE),
-        health:      s.health ?? 100,
-        intimacy:    s.intimacy ?? 0,
-      };
-      // Retroactive sick health decay — only count duration cat was ACTUALLY sick
       if (!isDead) {
-        const isSickOnLoad = checkSick(stats);
-        if (isSickOnLoad) {
-          // Find when each currently-sick stat crossed below 30
-          const onsets = [];
-          if (stats.fullness    < 30) onsets.push(s.fullness    > 30 ? (s.fullness    - 30) * DECAY.fullness    : 0);
-          if (stats.cleanliness < 30) onsets.push(s.cleanliness > 30 ? (s.cleanliness - 30) * DECAY.cleanliness : 0);
-          if (stats.happiness   < 30) onsets.push(s.happiness   > 30 ? (s.happiness   - 30) * DECAY.happiness   : 0);
-          if (stats.energy      < 30) onsets.push(0);
-          onsets.sort((a,b) => a - b); // ascending: [earliest, second-earliest, ...]
-          // Cat became sick when the SECOND stat crossed 30 (index [1])
-          const sickStarted  = onsets.length >= 2 ? onsets[1] : 0;
-          const sickDuration = Math.max(0, elapsed - sickStarted);
-          stats.health = clamp((s.health ?? 100) - sickDuration / 240);
-          if (stats.health <= 0) { stats.health = 0; isDead = true; }
-        }
+        const n = applyOfflineDecay(s, elapsed);
+        stats = n;
+        if (stats.health <= 0) { stats.health = 0; isDead = true; }
+      } else {
+        stats = { fullness: s.fullness ?? 0, cleanliness: s.cleanliness ?? 0,
+                  happiness: s.happiness ?? 0, energy: s.energy ?? 0,
+                  health: s.health ?? 0, intimacy: s.intimacy ?? 0 };
       }
       if (elapsed > 600 && !isDead)
         setTimeout(() => showMessage(`你離開了 ${Math.round(elapsed/60)} 分鐘，${catName}好想你！`), 600);
@@ -887,13 +947,14 @@ function tick() {
   stats.happiness   = clamp(stats.happiness   - e/DECAY.happiness);
   if (stats.energy<100) stats.energy = clamp(stats.energy + e/E_RESTORE);
 
-  const isSick = checkSick();
-  if (isSick) {
-    stats.health = clamp(stats.health - e/60);  // -1 per 60s when sick
-    if (stats.health<=0) { stats.health=0; triggerDeath(); return; }
-  } else if (stats.health<100) {
-    stats.health = clamp(stats.health + e/120);
-  }
+  const isSick     = checkSick();
+  const isStarving = stats.fullness === 0;
+  let healthDelta = 0;
+  if (isSick)                              healthDelta -= e / SICK_DRAIN;
+  if (isStarving)                          healthDelta -= e / STARVE_DRAIN;
+  if (!isSick && !isStarving && stats.health < 100) healthDelta += e / 120;
+  stats.health = clamp(stats.health + healthDelta);
+  if (stats.health <= 0) { stats.health = 0; triggerDeath(); return; }
   updateUI();
 }
 
@@ -910,6 +971,71 @@ if (!hasSave) {
 }
 setInterval(tick, 1000);
 setInterval(()=>{ if (!isDead) refreshIdle(); }, 9000);
+
+// ── VISIBILITY CHANGE (fix stats-not-updating on tab resume) ─────────────────
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    saveState(); // snapshot exact state at hide time
+  } else if (!isDead) {
+    // Apply any offline decay that accumulated while tab was hidden.
+    // lastTick is the reference: it freezes on iOS when tab is backgrounded.
+    const elapsed = (Date.now() - lastTick) / 1000;
+    if (elapsed > 5) {
+      const n = applyOfflineDecay(stats, elapsed);
+      stats = n;
+      lastTick = Date.now(); // prevent tick from double-applying
+      if (stats.health <= 0) {
+        stats.health = 0;
+        isDead = true;
+        triggerDeath();
+      } else {
+        if (elapsed > 120)
+          setTimeout(() => showMessage(`${catName}等你好久了！`), 300);
+        updateUI(); refreshIdle();
+      }
+    }
+  }
+});
+
+// ── CHAT ─────────────────────────────────────────────────────────────────────
+function chatWithCat() {
+  if (isDead) return;
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const posWords = ['愛','喜歡','可愛','棒','讚','乖','寶貝','親','漂亮','帥','美','想你','謝謝','抱抱','最愛','喜'];
+  const negWords = ['笨','臭','爛','蠢','討厭','壞','醜','吵','滾','廢物','豬','賤','垃圾','白癡','傻','混蛋','死貓','爬','難看'];
+
+  const isPos = posWords.some(w => text.includes(w));
+  const isNeg = negWords.some(w => text.includes(w));
+
+  if (isNeg && !isPos) {
+    stats.happiness = clamp(stats.happiness - 10);
+    stats.intimacy -= 5;
+    animateCat('shake');
+    showMessage(rand(MSG.chatNeg));
+    spawnEffect('💢');
+    playSound('angry');
+    document.body.className = 'mood-angry';
+    clearTimeout(reactionTm);
+    reactionActive = true;
+    reactionTm = setTimeout(() => { reactionActive = false; updateUI(); }, 2500);
+  } else if (isPos) {
+    stats.happiness = clamp(stats.happiness + 8);
+    stats.intimacy += 2;
+    animateCat('bounce');
+    showMessage(rand(MSG.chatPos));
+    spawnEffect('💕'); spawnEffect('✨', 22);
+    playSound('happy');
+    updateUI();
+  } else {
+    animateCat('bounce');
+    showMessage(rand(MSG.chatNeu));
+    spawnEffect('💭');
+  }
+}
 
 if ('serviceWorker' in navigator)
   navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister()));
