@@ -527,9 +527,6 @@ function applyOfflineDecay(s, elapsed) {
     health:      s.health  ?? 100,
     intimacy:    s.intimacy ?? 0,
   };
-  REACT_IMG = { pet:`${f}/shufu.png`, feed:`${f}/chbao.png`, hit:`${f}/blood.png`, poop:`${f}/dupi.png`, claw:`${f}/claw.png` };
-}
-buildImgMaps();
 
   // Retroactive sick drain — only count time cat was ACTUALLY sick (2+ stats < 30)
   if (checkSick(n)) {
@@ -840,7 +837,7 @@ function petCat() {
   stats.intimacy  += 1;
   animateCat('bounce'); showMessage(rand(MSG.pet));
   spawnEffect('💕'); spawnEffect('💗',22);
-  playSound('happy'); showReaction('pet'); maybeAngryBite(); startCooldown('pet'); updateUI();
+  playSound('purr'); showReaction('pet'); maybeAngryBite(); startCooldown('pet'); updateUI();
 }
 function playCat() {
   if (stats.energy<15)   { showAlert('太累了，沒力氣玩...'); return; }
