@@ -842,7 +842,7 @@ function petCat() {
   stats.intimacy  += 1;
   animateCat('bounce'); showMessage(rand(MSG.pet));
   spawnEffect('💕'); spawnEffect('💗',22);
-  playSound('purr'); showReaction('pet'); maybeAngryBite(); startCooldown('pet'); updateUI();
+  playSound(Math.random() < 0.4 ? 'meow' : 'purr'); showReaction('pet'); maybeAngryBite(); startCooldown('pet'); updateUI();
 }
 function playCat() {
   if (stats.energy<15)   { showAlert('太累了，沒力氣玩...'); return; }
@@ -973,6 +973,8 @@ if (!hasSave) {
 }
 setInterval(tick, 1000);
 setInterval(()=>{ if (!isDead) refreshIdle(); }, 9000);
+// Cat spontaneously meows every ~20s with 30% chance when not sick/dead
+setInterval(()=>{ if (!isDead && !checkSick() && Math.random() < 0.3) playSound('meow'); }, 20000);
 
 // ── VISIBILITY CHANGE (fix stats-not-updating on tab resume) ─────────────────
 document.addEventListener('visibilitychange', () => {
