@@ -942,8 +942,21 @@ let lastTick = Date.now();
 function tick() {
   if (isDead) return;
   const now = Date.now();
-  const e = Math.min((now-lastTick)/1000, 30); lastTick=now; // cap delta at 30s
+  const gap = (now - lastTick) / 1000;
+  lastTick = now;
 
+  // Gap > 35s means device was sleeping and visibilitychange didn't fire (iPad lock screen).
+  // Apply full retroactive decay instead of the normal capped tick.
+  if (gap > 35) {
+    const n = applyOfflineDecay(stats, gap);
+    stats = n;
+    if (stats.health <= 0) { stats.health = 0; triggerDeath(); return; }
+    if (gap > 120) setTimeout(() => showMessage(`${catName}等你好久了！`), 300);
+    updateUI(); refreshIdle();
+    return;
+  }
+
+  const e = Math.min(gap, 30);
   stats.fullness    = clamp(stats.fullness    - e/DECAY.fullness);
   stats.cleanliness = clamp(stats.cleanliness - e/DECAY.cleanliness);
   stats.happiness   = clamp(stats.happiness   - e/DECAY.happiness);
