@@ -301,7 +301,7 @@
     hp: playerMaxHp(1), maxHp: playerMaxHp(1),
     grow: 0, growNeed: 5,
     parts: { speed: 0, jaw: 0, armor: 0, regen: 0, spike: 0, poison: 0, electric: 0 },
-    spikeCd: 0, poisonCd: 0, electricCd: 0, electricTimer: 0,
+    spikeCd: 0, poisonCd: 0, electricCd: 0, electricTimer: 0, paralyze: 0,
     hurtFlash: 0, wobble: 0,
   };
 
@@ -354,19 +354,37 @@
   }
 
   const CREATURE_COLORS = ['#ff7a9c', '#7ad0ff', '#ffd36b', '#b69bff', '#7dffb0', '#ff9f6b'];
+
+  // AI cells can carry the same parts the player can equip
+  function rollCreatureParts(level) {
+    const p = { speed: 0, armor: 0, regen: 0, spike: 0, poison: 0, electric: 0 };
+    const equipChance = clamp(0.15 + level * 0.045, 0, 0.85);
+    if (Math.random() > equipChance) return p;
+    const keys = Object.keys(p);
+    const budget = 1 + Math.floor(level / 4);
+    for (let i = 0; i < budget; i++) {
+      const k = keys[randInt(0, keys.length - 1)];
+      if (p[k] < 3) p[k]++;
+    }
+    return p;
+  }
+
   function spawnCreature() {
     const level = aiLevelForPlayer(player.level);
     const size = sizeForLevel(level);
+    const parts = rollCreatureParts(level);
+    const maxHp = aiHp(level) * (1 + parts.armor * 0.25);
     let x, y, tries = 0;
     do { x = rand(-WORLD, WORLD); y = rand(-WORLD, WORLD); tries++; }
     while (dist2(x, y, player.x, player.y) < 460 * 460 && tries < 20);
     game.creatures.push({
-      x, y, vx: 0, vy: 0, level, size,
-      hp: aiHp(level), maxHp: aiHp(level),
+      x, y, vx: 0, vy: 0, level, size, parts,
+      hp: maxHp, maxHp,
       color: CREATURE_COLORS[randInt(0, CREATURE_COLORS.length - 1)],
-      spiky: level > player.level && Math.random() < 0.5,
+      spiky: parts.spike > 0 || (level > player.level && Math.random() < 0.4),
       wobble: rand(0, 6.28), dir: rand(0, 6.28), changeIn: rand(1, 3),
       flash: 0, paralyze: 0,
+      poisonCd: rand(2, 5), electricCd: rand(1, 4), electricTimer: 0,
     });
   }
 
@@ -433,7 +451,8 @@
     showEvolveButton(true);
   }
 
-  const canEat = f => (game.diet === 'herbivore' && !f.meat) || (game.diet === 'carnivore' && f.meat);
+  const canEat = f => game.diet === 'omnivore' ||
+    (game.diet === 'herbivore' && !f.meat) || (game.diet === 'carnivore' && f.meat);
 
   function eatFood(f) {
     addGrowth(growthPerFood());
@@ -471,7 +490,7 @@
     if (state !== State.PLAY || player.parts.poison <= 0 || player.poisonCd > 0) return;
     const bx = player.x - Math.cos(player.angle) * player.size * 1.4;
     const by = player.y - Math.sin(player.angle) * player.size * 1.4;
-    game.poisons.push({ x: bx, y: by, r: player.size * 1.6, maxR: player.size * 2.8, life: 5, max: 5, dps: poisonDps() });
+    game.poisons.push({ owner: 'player', x: bx, y: by, r: player.size * 1.6, maxR: player.size * 2.8, life: 5, max: 5, dps: poisonDps() });
     player.poisonCd = POISON_CD;
   }
   function activateElectric() {
@@ -511,6 +530,7 @@
     if (keys['s'] || keys['arrowdown']) ky += 1;
     if (kx || ky) { tx = kx; ty = ky; has = true; }
 
+    if (player.paralyze > 0) { player.paralyze -= dt; has = false; }   // zapped: can't steer
     const spd = playerSpeed(), acc = playerAccel();
     if (has) {
       const d = Math.hypot(tx, ty) || 1;
@@ -544,56 +564,65 @@
       if (dist2(f.x, f.y, player.x, player.y) < rr) { eatFood(f); game.foods.splice(i, 1); }
     }
 
-    // poison clouds
+    // poison clouds (player clouds hurt AI; AI clouds hurt player)
     for (let i = game.poisons.length - 1; i >= 0; i--) {
       const pc = game.poisons[i];
       pc.life -= dt;
       pc.r = lerp(pc.r, pc.maxR, clamp(dt * 1.5, 0, 1));
+      if (pc.owner === 'ai') {
+        const rr = (pc.r + player.size) * (pc.r + player.size);
+        if (dist2(pc.x, pc.y, player.x, player.y) < rr) hurtPlayer(pc.dps * dt, pc.x, pc.y);
+      }
       if (pc.life <= 0) { game.poisons.splice(i, 1); }
     }
 
     const elecActive = player.electricTimer > 0;
     const elecR = player.size * 2.4;
+    const armorMul = c => 1 - c.parts.armor * 0.12;     // AI 外殼減少玩家造成的傷害
 
-    // creatures
     for (let i = game.creatures.length - 1; i >= 0; i--) {
       const c = game.creatures[i];
       c.wobble += dt * 4;
       if (c.flash > 0) c.flash = Math.max(0, c.flash - dt * 3);
+      if (c.parts.regen > 0 && c.hp < c.maxHp) c.hp = Math.min(c.maxHp, c.hp + c.parts.regen * 3 * dt);
 
-      // poison damage
+      // player poison clouds hurt this creature
+      let dead = false;
       for (const pc of game.poisons) {
+        if (pc.owner !== 'player') continue;
         const rr = (pc.r + c.size) * (pc.r + c.size);
         if (dist2(pc.x, pc.y, c.x, c.y) < rr) {
           c.flash = 1;
-          if (damageCreature(c, pc.dps * dt)) { killCreature(c); game.creatures.splice(i, 1); }
+          if (damageCreature(c, pc.dps * armorMul(c) * dt)) { dead = true; break; }
         }
       }
-      if (c.hp <= 0) continue;
+      if (dead) { killCreature(c); game.creatures.splice(i, 1); continue; }
 
-      // electric damage + paralyze
+      // player electric ring
       if (elecActive) {
         const rr = (elecR + c.size) * (elecR + c.size);
         if (dist2(player.x, player.y, c.x, c.y) < rr) {
           c.paralyze = 0.3; c.flash = 1;
-          if (damageCreature(c, electricDps() * dt)) { killCreature(c); game.creatures.splice(i, 1); continue; }
+          if (damageCreature(c, electricDps() * armorMul(c) * dt)) { killCreature(c); game.creatures.splice(i, 1); continue; }
         }
       }
 
-      // AI movement
+      const toP = dist2(c.x, c.y, player.x, player.y);
+      const near = toP < 520 * 520;
+
+      // movement
       if (c.paralyze > 0) {
         c.paralyze -= dt;
         c.vx = lerp(c.vx, 0, clamp(8 * dt, 0, 1));
         c.vy = lerp(c.vy, 0, clamp(8 * dt, 0, 1));
       } else {
         c.changeIn -= dt;
-        const toP = dist2(c.x, c.y, player.x, player.y);
         const sense = 360 + c.size * 6;
         if (toP < sense * sense) {
           const a = Math.atan2(player.y - c.y, player.x - c.x);
           c.dir = c.level > player.level + 1 ? a : a + Math.PI;  // stronger chases, weaker flees
         } else if (c.changeIn <= 0) { c.dir = rand(0, 6.28); c.changeIn = rand(1.5, 3.5); }
-        const base = speedForLevel(c.level);
+        const base = speedForLevel(c.level) * (1 + c.parts.speed * 0.08);
         const cspd = c.level > player.level ? base * 1.04 : base * 1.12;
         c.vx = lerp(c.vx, Math.cos(c.dir) * cspd, clamp(2 * dt, 0, 1));
         c.vy = lerp(c.vy, Math.sin(c.dir) * cspd, clamp(2 * dt, 0, 1));
@@ -601,18 +630,40 @@
       c.x = clamp(c.x + c.vx * dt, -WORLD, WORLD);
       c.y = clamp(c.y + c.vy * dt, -WORLD, WORLD);
 
+      // AI abilities (poison cloud / electric burst) when near the player
+      if (c.paralyze <= 0 && near) {
+        if (c.parts.poison > 0) {
+          c.poisonCd -= dt;
+          if (c.poisonCd <= 0) {
+            c.poisonCd = rand(5, 7);
+            const bx = c.x - Math.cos(c.dir) * c.size, by = c.y - Math.sin(c.dir) * c.size;
+            game.poisons.push({ owner: 'ai', x: bx, y: by, r: c.size * 1.4, maxR: c.size * 2.4, life: 5, max: 5, dps: 6 + c.parts.poison * 4 });
+          }
+        }
+        if (c.parts.electric > 0) {
+          c.electricCd -= dt;
+          if (c.electricCd <= 0) { c.electricCd = rand(3, 5); c.electricTimer = 0.5; }
+        }
+      }
+      if (c.electricTimer > 0) {
+        c.electricTimer -= dt;
+        const er = c.size * 2.3, rr = (er + player.size) * (er + player.size);
+        if (dist2(c.x, c.y, player.x, player.y) < rr) {
+          player.paralyze = Math.max(player.paralyze, 0.3);
+          hurtPlayer((60 + c.parts.electric * 30) * dt, c.x, c.y);
+        }
+      }
+
       // contact with player
       const touchR = player.size + c.size;
       if (dist2(c.x, c.y, player.x, player.y) < touchR * touchR) {
-        // spike (melee) attack on contact when dashing
         if (movingFast && spikeDamage() > 0 && player.spikeCd <= 0) {
           player.spikeCd = 0.5;
           burst((c.x + player.x) / 2, (c.y + player.y) / 2, '#fff', 8, 140);
-          if (damageCreature(c, spikeDamage())) { killCreature(c); game.creatures.splice(i, 1); continue; }
+          if (damageCreature(c, spikeDamage() * armorMul(c))) { killCreature(c); game.creatures.splice(i, 1); continue; }
         }
-        // contact damage to player (bigger/stronger hurts more)
         const diff = c.level - player.level;
-        const dps = clamp(2 + Math.max(0, diff) * 6, 1, 70) + (c.spiky ? 4 : 0);
+        const dps = clamp(2 + Math.max(0, diff) * 6, 1, 70) + (c.spiky ? 4 : 0) + c.parts.spike * 4;
         hurtPlayer(dps * dt * 2, c.x, c.y);
       }
     }
@@ -667,7 +718,7 @@
     for (const c of game.creatures) { if (onScreen(c.x, c.y, c.size + 30)) drawCreature(c); }
 
     // electric ring around player
-    if (player.electricTimer > 0) drawElectric();
+    if (player.electricTimer > 0) drawElectricAt(player.x, player.y, player.size, player.electricTimer);
 
     drawPlayer();
 
@@ -701,11 +752,10 @@
     ctx.strokeRect(-WORLD, -WORLD, WORLD * 2, WORLD * 2);
   }
 
-  function drawElectric() {
-    const r = player.size * 2.4;
-    const t = player.electricTimer;
+  function drawElectricAt(x, y, size, t) {
+    const r = size * 2.4;
     ctx.save();
-    ctx.translate(player.x, player.y);
+    ctx.translate(x, y);
     ctx.strokeStyle = `rgba(150,210,255,${clamp(t * 2, 0, 1)})`;
     ctx.lineWidth = 2;
     ctx.shadowBlur = 16; ctx.shadowColor = '#8fc4ff';
@@ -783,7 +833,7 @@
 
   function drawPlayer() {
     const flash = player.hurtFlash > 0 && Math.floor(player.hurtFlash * 12) % 2 === 0;
-    const baseColor = game.diet === 'carnivore' ? '#ff7a6e' : '#56d1ff';
+    const baseColor = game.diet === 'omnivore' ? '#ffd36b' : game.diet === 'carnivore' ? '#ff7a6e' : '#56d1ff';
     drawCell(player.x, player.y, player.size, player.angle, player.wobble, flash ? '#ffffff' : baseColor, {
       cilia: true, spikes: player.parts.spike, spikeColor: '#ffe08a',
       armor: player.parts.armor, jaw: player.parts.jaw,
@@ -793,8 +843,12 @@
 
   function drawCreature(c) {
     const ang = Math.atan2(c.vy, c.vx);
+    if (c.electricTimer > 0) drawElectricAt(c.x, c.y, c.size, c.electricTimer);
     drawCell(c.x, c.y, c.size, ang, c.wobble, c.flash > 0 ? '#ffffff' : c.color, {
-      cilia: c.level <= player.level, spikes: c.spiky ? 2 : 0, spikeColor: '#ff9a9a',
+      cilia: c.level <= player.level,
+      spikes: c.parts.spike > 0 ? c.parts.spike : (c.spiky ? 2 : 0),
+      spikeColor: '#ff9a9a',
+      armor: c.parts.armor,
     });
     // threat ring: green = weaker/equal, red = stronger
     const stronger = c.level > player.level + 1;
@@ -840,7 +894,8 @@
     hpFill.style.width = clamp(player.hp / player.maxHp * 100, 0, 100) + '%';
     growFill.style.width = clamp(player.grow / player.growNeed * 100, 0, 100) + '%';
     stageFill.style.width = clamp(player.level / MAX_LEVEL * 100, 0, 100) + '%';
-    document.getElementById('dietStat').textContent = game.diet === 'carnivore' ? '🥩肉食' : '🌿草食';
+    document.getElementById('dietStat').textContent =
+      game.diet === 'omnivore' ? '🍽️雜食' : game.diet === 'carnivore' ? '🥩肉食' : '🌿草食';
     document.getElementById('dnaStat').textContent = game.dna;
     document.getElementById('stageStat').textContent = player.level;
   }
@@ -874,7 +929,8 @@
   function closeEvolve() { show('evolveScreen', false); state = State.PLAY; updateActionButtons(); }
   function renderParts() {
     document.getElementById('dnaBalance').textContent = game.dna;
-    document.getElementById('dietLabel').textContent = game.diet === 'carnivore' ? '🥩 肉食' : '🌿 草食';
+    document.getElementById('dietLabel').textContent =
+      game.diet === 'omnivore' ? '🍽️ 雜食' : game.diet === 'carnivore' ? '🥩 肉食' : '🌿 草食';
     const list = document.getElementById('partsList');
     list.innerHTML = '';
     for (const def of PART_DEFS) {
@@ -893,21 +949,21 @@
       if (!maxed) div.addEventListener('click', () => buyPart(def));
       list.appendChild(div);
     }
-    // diet-switch special row (req 6)
-    const other = game.diet === 'carnivore' ? '草食' : '肉食';
-    const otherIcon = game.diet === 'carnivore' ? '🌿' : '🥩';
-    const dcost = 10;
-    const ds = document.createElement('div');
-    ds.className = 'part special' + (game.dna >= dcost ? ' affordable' : '');
-    ds.innerHTML = `
-      <div class="part-icon">🔄</div>
-      <div class="part-info">
-        <div class="pname">轉換食性 → ${otherIcon} ${other}</div>
-        <div class="pdesc">改變你能吃的食物。草食只吃綠色、肉食只吃紅色。</div>
-      </div>
-      <div class="part-cost">🧬 ${dcost}</div>`;
-    ds.addEventListener('click', () => buyDietSwitch(dcost));
-    list.appendChild(ds);
+    // omnivore evolution (req 6): one-time upgrade to eat BOTH foods
+    if (game.diet !== 'omnivore') {
+      const dcost = 20;
+      const ds = document.createElement('div');
+      ds.className = 'part special' + (game.dna >= dcost ? ' affordable' : '');
+      ds.innerHTML = `
+        <div class="part-icon">🍽️</div>
+        <div class="part-info">
+          <div class="pname">進化成雜食</div>
+          <div class="pdesc">同時消化綠色植物與紅色肉塊，兩種食物都能吃。一次性進化。</div>
+        </div>
+        <div class="part-cost">🧬 ${dcost}</div>`;
+      ds.addEventListener('click', () => buyOmnivore(dcost));
+      list.appendChild(ds);
+    }
   }
   function buyPart(def) {
     const cost = partCost(def);
@@ -919,11 +975,12 @@
     toast(`進化：${def.name} Lv.${player.parts[def.key]}`);
     renderParts(); updateHUD(); updateActionButtons();
   }
-  function buyDietSwitch(cost) {
+  function buyOmnivore(cost) {
     if (game.dna < cost) { toast('DNA 不足'); return; }
     game.dna -= cost;
-    game.diet = game.diet === 'carnivore' ? 'herbivore' : 'carnivore';
-    toast('食性轉換為 ' + (game.diet === 'carnivore' ? '🥩 肉食' : '🌿 草食'));
+    game.diet = 'omnivore';
+    burst(player.x, player.y, '#ffd36b', 20, 180);
+    toast('進化成 🍽️ 雜食！綠紅都能吃');
     renderParts(); updateHUD();
   }
 
