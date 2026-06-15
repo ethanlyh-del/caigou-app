@@ -44,7 +44,31 @@
   #stats b { color: #7df0c2; }
   .dna { color: #ffd86b; }
 
-  /* ---- Evolve / menu panels ---- */
+  /* ---- Action buttons (poison / electric) ---- */
+  #actions {
+    position: absolute; left: 16px; bottom: 18px;
+    display: flex; gap: 14px; z-index: 12;
+  }
+  .action {
+    position: relative; width: 66px; height: 66px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.25);
+    background: rgba(10,30,45,0.7);
+    color: #fff; font-size: 1.7rem;
+    display: none; align-items: center; justify-content: center;
+    cursor: pointer; overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+  .action .ico { position: relative; z-index: 2; line-height: 1; }
+  .action .cd {
+    position: absolute; left: 0; bottom: 0; width: 100%; height: 0%;
+    background: rgba(0,0,0,0.55); z-index: 1; transition: height 0.08s linear;
+  }
+  .action.ready { border-color: rgba(120,255,180,0.7); }
+  .action:active { transform: scale(0.94); }
+  #poisonBtn.ready { box-shadow: 0 0 16px rgba(120,255,120,0.5); }
+  #electricBtn.ready { box-shadow: 0 0 16px rgba(150,200,255,0.6); }
+
+  /* ---- Overlays ---- */
   .overlay {
     position: absolute; inset: 0;
     background: rgba(3,12,20,0.82);
@@ -65,7 +89,8 @@
   .panel h1 { font-size: 1.5rem; margin-bottom: 6px; }
   .panel h2 { font-size: 1.15rem; margin-bottom: 12px; color: #9fe9ff; }
   .panel p { font-size: 0.9rem; line-height: 1.6; opacity: 0.9; margin-bottom: 14px; }
-  .panel .dna-balance { font-size: 0.95rem; margin-bottom: 14px; }
+  .panel .dna-balance { font-size: 0.95rem; margin-bottom: 6px; }
+  .panel .diet-now { font-size: 0.85rem; margin-bottom: 14px; opacity: 0.9; }
 
   .parts { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
   .part {
@@ -77,7 +102,8 @@
   }
   .part:active { transform: scale(0.98); }
   .part.affordable:hover { border-color: rgba(120,210,255,0.5); background: rgba(120,210,255,0.08); }
-  .part.maxed, .part.locked { opacity: 0.45; cursor: default; }
+  .part.maxed, .part.locked { opacity: 0.5; cursor: default; }
+  .part.special { border-color: rgba(255,200,120,0.4); background: rgba(255,200,120,0.06); }
   .part-icon {
     width: 44px; height: 44px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
@@ -98,10 +124,6 @@
   }
   .btn:active { transform: scale(0.98); }
   .btn:hover { filter: brightness(1.08); }
-  .btn.secondary {
-    background: rgba(255,255,255,0.08); color: #eaf6ff;
-    border: 1px solid rgba(255,255,255,0.15); margin-top: 10px;
-  }
 
   .diet-choice { display: flex; gap: 12px; margin-bottom: 18px; }
   .diet {
@@ -144,41 +166,46 @@
 <div id="hud">
   <div class="bar-row"><span class="bar-label">生命</span><div class="bar"><span id="hpFill"></span></div></div>
   <div class="bar-row"><span class="bar-label">成長</span><div class="bar"><span id="growFill"></span></div></div>
-  <div class="bar-row"><span class="bar-label">階段</span><div class="bar"><span id="stageFill"></span></div></div>
+  <div class="bar-row"><span class="bar-label">等級</span><div class="bar"><span id="stageFill"></span></div></div>
   <div id="stats">
-    <span>體型 <b id="sizeStat">1</b></span>
+    <span id="dietStat">🌿草食</span>
     <span class="dna">🧬 <b id="dnaStat">0</b></span>
-    <span>第 <b id="stageStat">1</b> 階</span>
+    <span>Lv. <b id="stageStat">1</b> / 20</span>
   </div>
 </div>
 
 <div id="toast"></div>
 <button id="evolveBtn">⬆️ 進化！</button>
 
+<div id="actions">
+  <button class="action" id="poisonBtn"><span class="cd"></span><span class="ico">☠️</span></button>
+  <button class="action" id="electricBtn"><span class="cd"></span><span class="ico">⚡</span></button>
+</div>
+
 <!-- Start screen -->
 <div class="overlay show" id="startScreen">
   <div class="panel">
     <h1>🦠 細胞起源</h1>
     <h2>Spore — 細胞階段</h2>
-    <p>你是一隻在原始濃湯裡漂浮的微生物。吃掉比你小的東西來成長，避開比你大的掠食者，收集 <span class="dna">🧬 DNA</span> 進化出新的身體部件，一路演化到能爬上陸地為止。</p>
+    <p>你是一隻在原始濃湯裡漂浮的微生物，從跟其他細胞一樣弱小開始。吃食物成長、收集 <span class="dna">🧬 DNA</span> 進化出新的身體部件，逐步變強並升到 <b>20 級</b>。</p>
 
     <p style="margin-bottom:8px;font-weight:700;">選擇你的食性：</p>
     <div class="diet-choice">
       <div class="diet sel" data-diet="herbivore">
         <div class="emoji">🌿</div>
         <div class="dname">草食</div>
-        <div class="ddesc">吃綠色植物碎屑，溫和起步</div>
+        <div class="ddesc">只能吃綠色植物。起步溫和，一開始不能攻擊，需升級配件才行。</div>
       </div>
       <div class="diet" data-diet="carnivore">
         <div class="emoji">🥩</div>
         <div class="dname">肉食</div>
-        <div class="ddesc">吃紅色肉塊與其他細胞，攻擊更強</div>
+        <div class="ddesc">只能吃紅色肉塊。天生帶尖刺能攻擊，殺死細胞會掉肉。</div>
       </div>
     </div>
 
     <div class="hint">
       <b>操作：</b>滑動畫面 / 移動滑鼠來游動，細胞會朝指標前進。<br>
-      手機請用手指拖曳；電腦也可用 <b>WASD / 方向鍵</b>。
+      電腦也可用 <b>WASD / 方向鍵</b>；攻擊技能用左下角按鈕（或 <b>Q＝毒</b>、<b>E＝電</b>）。
     </div>
     <button class="btn" id="startBtn" style="margin-top:18px;">開始演化</button>
   </div>
@@ -189,6 +216,7 @@
   <div class="panel">
     <h1>🧬 進化編輯器</h1>
     <p class="dna-balance">可用 DNA：<span class="dna" style="font-weight:800;">🧬 <span id="dnaBalance">0</span></span></p>
+    <p class="diet-now">目前食性：<span id="dietLabel">🌿 草食</span></p>
     <div class="parts" id="partsList"></div>
     <button class="btn" id="closeEvolve">回到大海</button>
   </div>
@@ -203,12 +231,12 @@
   </div>
 </div>
 
-<!-- Win / next stage -->
+<!-- Win -->
 <div class="overlay" id="winScreen">
   <div class="panel" style="text-align:center;">
     <h1>🎉 細胞階段完成！</h1>
-    <p>你的細胞已經足夠複雜，準備爬上陸地。接下來的「生物階段」即將到來……</p>
-    <p class="hint">（本作目前實作到 Spore 的第一階段。你存活並演化成了一隻成熟的多細胞生物！）</p>
+    <p>你升到了 20 級，細胞已經足夠複雜，準備爬上陸地。接下來的「生物階段」即將到來……</p>
+    <p class="hint">（本作目前實作到 Spore 的第一階段。你存活並演化成了成熟的多細胞生物！）</p>
     <button class="btn" id="winRestartBtn">再玩一次</button>
   </div>
 </div>
@@ -230,135 +258,140 @@
   window.addEventListener('resize', resize);
   resize();
 
-  // ---------- World ----------
-  const WORLD = 2600;            // half-size of the square ocean (-WORLD..WORLD)
+  // ---------- Helpers ----------
+  const WORLD = 2800;
   const rand = (a, b) => a + Math.random() * (b - a);
   const randInt = (a, b) => Math.floor(rand(a, b + 1));
   const dist2 = (ax, ay, bx, by) => { const dx = ax - bx, dy = ay - by; return dx * dx + dy * dy; };
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const lerp = (a, b, t) => a + (b - a) * t;
 
-  // ---------- Game state ----------
-  const STAGE_GOAL = 5;          // grow-meter fills needed to clear the cell stage
+  // ---------- Level-based stat curves (player & AI share these) ----------
+  const MAX_LEVEL = 20;
+  const sizeForLevel  = L => 11 + (L - 1) * 2.0;       // L1=11 ... L20=49
+  const speedForLevel = L => 118 + L * 2.6;            // same speed at same level
+  const playerMaxHp   = L => 50 + (L - 1) * 12;        // player hp
+  const aiHp          = L => 20 + L * 8;               // AI is easier to kill than player
 
+  // AI level relative to the player (req 2): mostly ±2, rarely +3..+5
+  function aiLevelForPlayer(pl) {
+    let lvl;
+    if (Math.random() < 0.85) lvl = pl + randInt(-2, 2);
+    else lvl = pl + randInt(3, 5);
+    return clamp(lvl, 1, MAX_LEVEL + 4);
+  }
+
+  // ---------- State ----------
   const State = { START: 0, PLAY: 1, EVOLVE: 2, OVER: 3, WIN: 4 };
   let state = State.START;
+  const POISON_CD = 6, ELEC_CD = 3;
 
   const game = {
     diet: 'herbivore',
     dna: 0,
-    stageProgress: 0,     // 0..STAGE_GOAL
     foods: [],
     creatures: [],
     particles: [],
+    poisons: [],     // poison clouds
   };
 
-  // Player
   const player = {
-    x: 0, y: 0, vx: 0, vy: 0,
-    angle: 0,
-    size: 14,              // visual radius
-    hp: 100, maxHp: 100,
-    grow: 0,               // 0..growNeed
-    growNeed: 6,
-    // upgradable parts (levels)
-    parts: { speed: 0, jaw: 0, spike: 0, armor: 0, regen: 0 },
-    spikeCooldown: 0,
-    hurtFlash: 0,
-    wobble: 0,
+    x: 0, y: 0, vx: 0, vy: 0, angle: 0,
+    level: 1, size: sizeForLevel(1),
+    hp: playerMaxHp(1), maxHp: playerMaxHp(1),
+    grow: 0, growNeed: 5,
+    parts: { speed: 0, jaw: 0, armor: 0, regen: 0, spike: 0, poison: 0, electric: 0 },
+    spikeCd: 0, poisonCd: 0, electricCd: 0, electricTimer: 0,
+    hurtFlash: 0, wobble: 0,
   };
 
-  // ---------- Parts definitions ----------
+  // ---------- Part definitions ----------
   const PART_DEFS = [
-    { key: 'jaw',   icon: '👄', name: '顎部',   desc: '能吃下接近自己體型的獵物，每級提高可吃範圍。', base: 8,  step: 6, max: 4 },
-    { key: 'spike', icon: '🔱', name: '尖刺',   desc: '衝刺撞擊可傷害甚至刺穿較大的掠食者。', base: 10, step: 8, max: 4 },
-    { key: 'speed', icon: '🪼', name: '鞭毛',   desc: '提升游動速度與加速度，更好覓食與逃命。', base: 8,  step: 6, max: 4 },
-    { key: 'armor', icon: '🛡️', name: '外殼',   desc: '增加最大生命並減少受到的傷害。', base: 9,  step: 7, max: 3 },
-    { key: 'regen', icon: '💚', name: '再生',   desc: '隨時間緩慢恢復生命值。', base: 10, step: 8, max: 3 },
+    { key: 'speed',    icon: '🪼', name: '鞭毛',  desc: '提升游動速度與加速度。', base: 6,  step: 5,  max: 5 },
+    { key: 'jaw',      icon: '👄', name: '大嘴',  desc: '加大進食範圍並提高每次進食的成長量。', base: 5, step: 4, max: 4 },
+    { key: 'armor',    icon: '🛡️', name: '外殼',  desc: '增加最大生命並減少受到的傷害。', base: 7, step: 6, max: 4 },
+    { key: 'regen',    icon: '💚', name: '再生',  desc: '隨時間緩慢恢復生命值。', base: 8, step: 6, max: 3 },
+    { key: 'spike',    icon: '🔱', name: '尖刺',  desc: '高速衝撞時刺傷碰到的細胞，是近身攻擊。', base: 6, step: 6, max: 5 },
+    { key: 'poison',   icon: '☠️', name: '毒刺',  desc: '解鎖「毒」按鈕：在身後噴出綠色毒煙，持續 5 秒，碰到的敵人緩慢扣血（自己免疫）。', base: 10, step: 8, max: 4 },
+    { key: 'electric', icon: '⚡', name: '電',    desc: '解鎖「電」按鈕：身體周圍放電 0.5 秒，傷害高並使碰到的細胞麻痺 0.3 秒。', base: 14, step: 10, max: 4 },
   ];
-  function partCost(def) { return def.base + def.step * player.parts[def.key]; }
+  const partCost = def => def.base + def.step * player.parts[def.key];
 
-  // ---------- Derived player stats ----------
-  function playerSpeed() { return 150 + player.parts.speed * 55 - player.size * 0.6; }
-  function playerAccel() { return 6 + player.parts.speed * 1.6; }
-  function jawReach()    { return 0.55 + player.parts.jaw * 0.18; } // can eat creatures up to this * player.size in radius
-  function spikeDamage() { return player.parts.spike > 0 ? 18 + player.parts.spike * 12 : 0; }
-  function damageReduction() { return 1 - player.parts.armor * 0.16; }
+  // ---------- Derived stats ----------
+  const playerSpeed   = () => speedForLevel(player.level) + player.parts.speed * 38;
+  const playerAccel   = () => 5 + player.parts.speed * 1.5;
+  const pickupRange   = () => 4 + player.parts.jaw * 3;
+  const growthPerFood = () => 1 * (1 + player.parts.jaw * 0.12);
+  const spikeDamage   = () => player.parts.spike > 0 ? 14 + player.parts.spike * 10 : 0;
+  const damageReduction = () => 1 - player.parts.armor * 0.14;
+  const poisonDps  = () => 8 + player.parts.poison * 5;     // sustained
+  const electricDps = () => 70 + player.parts.electric * 35; // burst, higher than poison
 
   // ---------- Input ----------
   const pointer = { x: 0, y: 0, active: false };
   const keys = {};
-
-  function setPointer(clientX, clientY) {
-    pointer.x = clientX; pointer.y = clientY; pointer.active = true;
-  }
+  function setPointer(x, y) { pointer.x = x; pointer.y = y; pointer.active = true; }
   canvas.addEventListener('mousemove', e => setPointer(e.clientX, e.clientY));
   canvas.addEventListener('mousedown', e => setPointer(e.clientX, e.clientY));
   canvas.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; setPointer(t.clientX, t.clientY); }, { passive: false });
   canvas.addEventListener('touchmove',  e => { e.preventDefault(); const t = e.touches[0]; setPointer(t.clientX, t.clientY); }, { passive: false });
   canvas.addEventListener('touchend',   e => { e.preventDefault(); pointer.active = false; }, { passive: false });
   canvas.addEventListener('mouseleave', () => pointer.active = false);
-  window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
-  window.addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
+  window.addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    keys[k] = true;
+    if (k === 'q') activatePoison();
+    if (k === 'e') activateElectric();
+  });
+  window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
   // ---------- Spawning ----------
   function spawnFood(n) {
     for (let i = 0; i < n; i++) {
-      const isMeat = Math.random() < 0.42;
-      game.foods.push({
-        x: rand(-WORLD, WORLD), y: rand(-WORLD, WORLD),
-        r: rand(3, 5.5),
-        meat: isMeat,
-        phase: rand(0, Math.PI * 2),
-      });
+      const isMeat = Math.random() < 0.3;       // green more common (req 7)
+      game.foods.push({ x: rand(-WORLD, WORLD), y: rand(-WORLD, WORLD), r: rand(3, 5.5), meat: isMeat, phase: rand(0, 6.28) });
     }
   }
 
   const CREATURE_COLORS = ['#ff7a9c', '#7ad0ff', '#ffd36b', '#b69bff', '#7dffb0', '#ff9f6b'];
-  function spawnCreature(forceNearPlayer) {
-    // Size relative to player so difficulty scales.
-    const roll = Math.random();
-    let size;
-    if (roll < 0.5) size = rand(player.size * 0.45, player.size * 0.95);      // prey
-    else if (roll < 0.8) size = rand(player.size * 1.05, player.size * 1.6);  // mild threat
-    else size = rand(player.size * 1.7, player.size * 2.8);                   // big predator
-
-    let x, y;
-    let tries = 0;
-    do {
-      x = rand(-WORLD, WORLD); y = rand(-WORLD, WORLD); tries++;
-    } while (dist2(x, y, player.x, player.y) < 480 * 480 && tries < 20);
-
+  function spawnCreature() {
+    const level = aiLevelForPlayer(player.level);
+    const size = sizeForLevel(level);
+    let x, y, tries = 0;
+    do { x = rand(-WORLD, WORLD); y = rand(-WORLD, WORLD); tries++; }
+    while (dist2(x, y, player.x, player.y) < 460 * 460 && tries < 20);
     game.creatures.push({
-      x, y, vx: 0, vy: 0,
-      size,
-      hp: size * 4,
+      x, y, vx: 0, vy: 0, level, size,
+      hp: aiHp(level), maxHp: aiHp(level),
       color: CREATURE_COLORS[randInt(0, CREATURE_COLORS.length - 1)],
-      spiky: size > player.size && Math.random() < 0.5,
-      wobble: rand(0, 6.28),
-      dir: rand(0, 6.28),
-      changeIn: rand(1, 3),
-      flash: 0,
+      spiky: level > player.level && Math.random() < 0.5,
+      wobble: rand(0, 6.28), dir: rand(0, 6.28), changeIn: rand(1, 3),
+      flash: 0, paralyze: 0,
     });
   }
 
   function ensurePopulation() {
-    while (game.foods.length < 150) spawnFood(1);
-    const want = 16 + Math.floor(game.stageProgress * 1.5);
+    while (game.foods.length < 200) spawnFood(1);
+    const want = Math.min(60, 28 + Math.floor(player.level * 1.4));   // more AI (req 1)
     while (game.creatures.length < want) spawnCreature();
   }
 
   // ---------- Reset ----------
   function resetGame() {
-    game.dna = 0; game.stageProgress = 0;
-    game.foods = []; game.creatures = []; game.particles = [];
+    game.dna = 0;
+    game.foods = []; game.creatures = []; game.particles = []; game.poisons = [];
     player.x = 0; player.y = 0; player.vx = 0; player.vy = 0;
-    player.size = 14; player.maxHp = 100; player.hp = 100;
-    player.grow = 0; player.growNeed = 6;
-    player.parts = { speed: 0, jaw: 0, spike: 0, armor: 0, regen: 0 };
-    player.spikeCooldown = 0; player.hurtFlash = 0;
-    spawnFood(150);
-    for (let i = 0; i < 16; i++) spawnCreature();
+    player.level = 1; player.size = sizeForLevel(1);
+    player.maxHp = playerMaxHp(1); player.hp = player.maxHp;
+    player.grow = 0; player.growNeed = 5;
+    // carnivore starts with a basic bite; herbivore can't attack yet (req 9)
+    player.parts = { speed: 0, jaw: 0, armor: 0, regen: 0,
+                     spike: game.diet === 'carnivore' ? 1 : 0, poison: 0, electric: 0 };
+    player.spikeCd = 0; player.poisonCd = 0; player.electricCd = 0; player.electricTimer = 0;
+    player.hurtFlash = 0;
+    spawnFood(200);
+    for (let i = 0; i < 28; i++) spawnCreature();
+    updateActionButtons();
   }
 
   // ---------- Particles ----------
@@ -378,69 +411,88 @@
     toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
   }
 
-  // ---------- Player growth / eating ----------
+  // ---------- Growth / level ----------
   function addGrowth(amount) {
     player.grow += amount;
-    while (player.grow >= player.growNeed) {
+    while (player.grow >= player.growNeed && player.level < MAX_LEVEL) {
       player.grow -= player.growNeed;
       levelUp();
     }
+    if (player.level >= MAX_LEVEL) player.grow = 0;
   }
-
   function levelUp() {
-    player.size = Math.min(player.size + 2.4, 70);
-    player.maxHp += 14 + player.parts.armor * 8;
-    player.hp = player.maxHp;       // heal on growth
-    player.growNeed = Math.round(player.growNeed * 1.28);
-    game.dna += 3;
-    game.stageProgress++;
-    burst(player.x, player.y, '#56ffb0', 26, 200);
-
-    if (game.stageProgress >= STAGE_GOAL) { winGame(); return; }
-
-    toast('成長了！🧬+3　可以進化');
+    player.level++;
+    player.size = sizeForLevel(player.level);
+    player.maxHp = playerMaxHp(player.level) + player.parts.armor * 24;
+    player.hp = player.maxHp;
+    player.growNeed = Math.round(4 + player.level * 1.4);
+    game.dna += 2;
+    burst(player.x, player.y, '#56ffb0', 24, 200);
+    if (player.level >= MAX_LEVEL) { winGame(); return; }
+    toast('升級！Lv.' + player.level + '　🧬+2');
     showEvolveButton(true);
   }
 
+  const canEat = f => (game.diet === 'herbivore' && !f.meat) || (game.diet === 'carnivore' && f.meat);
+
   function eatFood(f) {
-    const good = (game.diet === 'herbivore' && !f.meat) || (game.diet === 'carnivore' && f.meat);
-    const val = good ? 1 : 0.4;          // wrong diet still edible but less nutritious
-    addGrowth(val * 0.9);
-    if (Math.random() < 0.25) game.dna += 1;
+    addGrowth(growthPerFood());
+    game.dna += 1;                              // every food = +1 DNA (req 3)
     burst(f.x, f.y, f.meat ? '#ff7a9c' : '#7dffb0', 6, 90);
   }
 
-  function eatCreature(c) {
-    addGrowth(1.6 + c.size * 0.05);
-    game.dna += 1 + Math.floor(c.size / 14);
-    burst(c.x, c.y, c.color, 14, 150);
+  // AI dies -> drop 3 meat chunks sized by the cell (req 8)
+  function killCreature(c) {
+    burst(c.x, c.y, c.color, 16, 150);
+    const r = clamp(c.size * 0.32, 4, 11);
+    for (let i = 0; i < 3; i++) {
+      const a = rand(0, 6.28), d = c.size * 0.6;
+      game.foods.push({ x: c.x + Math.cos(a) * d, y: c.y + Math.sin(a) * d, r, meat: true, phase: rand(0, 6.28) });
+    }
+  }
+
+  function damageCreature(c, dmg) {
+    c.hp -= dmg; c.flash = 1;
+    if (c.hp <= 0) return true;
+    return false;
   }
 
   function hurtPlayer(dmg, fromx, fromy) {
-    dmg = Math.max(1, dmg * damageReduction());
+    dmg = Math.max(0.5, dmg * damageReduction());
     player.hp -= dmg;
     player.hurtFlash = 1;
-    // knockback
-    const dx = player.x - fromx, dy = player.y - fromy;
-    const d = Math.hypot(dx, dy) || 1;
-    player.vx += (dx / d) * 120; player.vy += (dy / d) * 120;
+    const dx = player.x - fromx, dy = player.y - fromy, d = Math.hypot(dx, dy) || 1;
+    player.vx += (dx / d) * 90; player.vy += (dy / d) * 90;
     if (player.hp <= 0) { player.hp = 0; gameOver(); }
   }
+
+  // ---------- Abilities ----------
+  function activatePoison() {
+    if (state !== State.PLAY || player.parts.poison <= 0 || player.poisonCd > 0) return;
+    const bx = player.x - Math.cos(player.angle) * player.size * 1.4;
+    const by = player.y - Math.sin(player.angle) * player.size * 1.4;
+    game.poisons.push({ x: bx, y: by, r: player.size * 1.6, maxR: player.size * 2.8, life: 5, max: 5, dps: poisonDps() });
+    player.poisonCd = POISON_CD;
+  }
+  function activateElectric() {
+    if (state !== State.PLAY || player.parts.electric <= 0 || player.electricCd > 0) return;
+    player.electricTimer = 0.5;
+    player.electricCd = ELEC_CD;
+    burst(player.x, player.y, '#bfe3ff', 14, 180);
+  }
+  document.getElementById('poisonBtn').addEventListener('pointerdown', e => { e.preventDefault(); activatePoison(); });
+  document.getElementById('electricBtn').addEventListener('pointerdown', e => { e.preventDefault(); activateElectric(); });
 
   // ---------- State transitions ----------
   function gameOver() {
     state = State.OVER;
     document.getElementById('overText').innerHTML =
-      `你活到了第 <b>${game.stageProgress + 1}</b> 階，體型達到 <b>${Math.round(player.size)}</b>，收集了 <span class="dna">🧬 ${game.dna}</span>。`;
+      `你達到了 <b>Lv.${player.level}</b>，收集了 <span class="dna">🧬 ${game.dna}</span>。`;
     show('overScreen', true);
     showEvolveButton(false);
+    updateActionButtons();
   }
-  function winGame() {
-    state = State.WIN;
-    show('winScreen', true);
-    showEvolveButton(false);
-  }
-
+  function winGame() { state = State.WIN; show('winScreen', true); showEvolveButton(false); updateActionButtons(); }
   function showEvolveButton(v) {
     document.getElementById('evolveBtn').style.display = (v && state === State.PLAY) ? 'block' : 'none';
   }
@@ -449,254 +501,259 @@
   function update(dt) {
     if (state !== State.PLAY) return;
 
-    // --- player intent ---
-    let tx = 0, ty = 0, hasTarget = false;
-    if (pointer.active) {
-      // pointer is in screen space; convert to world relative to player at screen center
-      tx = pointer.x - W / 2; ty = pointer.y - H / 2;
-      hasTarget = (Math.hypot(tx, ty) > 6);
-    }
+    // intent
+    let tx = 0, ty = 0, has = false;
+    if (pointer.active) { tx = pointer.x - W / 2; ty = pointer.y - H / 2; has = Math.hypot(tx, ty) > 6; }
     let kx = 0, ky = 0;
     if (keys['a'] || keys['arrowleft']) kx -= 1;
     if (keys['d'] || keys['arrowright']) kx += 1;
     if (keys['w'] || keys['arrowup']) ky -= 1;
     if (keys['s'] || keys['arrowdown']) ky += 1;
-    if (kx || ky) { tx = kx; ty = ky; hasTarget = true; }
+    if (kx || ky) { tx = kx; ty = ky; has = true; }
 
-    const spd = playerSpeed();
-    const acc = playerAccel();
-    if (hasTarget) {
+    const spd = playerSpeed(), acc = playerAccel();
+    if (has) {
       const d = Math.hypot(tx, ty) || 1;
-      const dirx = tx / d, diry = ty / d;
-      player.vx = lerp(player.vx, dirx * spd, clamp(acc * dt, 0, 1));
-      player.vy = lerp(player.vy, diry * spd, clamp(acc * dt, 0, 1));
+      player.vx = lerp(player.vx, tx / d * spd, clamp(acc * dt, 0, 1));
+      player.vy = lerp(player.vy, ty / d * spd, clamp(acc * dt, 0, 1));
       player.angle = Math.atan2(player.vy, player.vx);
     } else {
       player.vx = lerp(player.vx, 0, clamp(3 * dt, 0, 1));
       player.vy = lerp(player.vy, 0, clamp(3 * dt, 0, 1));
     }
-
-    player.x += player.vx * dt;
-    player.y += player.vy * dt;
-    player.x = clamp(player.x, -WORLD, WORLD);
-    player.y = clamp(player.y, -WORLD, WORLD);
+    player.x = clamp(player.x + player.vx * dt, -WORLD, WORLD);
+    player.y = clamp(player.y + player.vy * dt, -WORLD, WORLD);
     player.wobble += dt * (3 + Math.hypot(player.vx, player.vy) * 0.02);
 
-    // spike dash detection: moving fast = spike active
     const movingFast = Math.hypot(player.vx, player.vy) > spd * 0.72;
-    if (player.spikeCooldown > 0) player.spikeCooldown -= dt;
-
-    // regen
-    if (player.parts.regen > 0 && player.hp < player.maxHp) {
+    if (player.spikeCd > 0) player.spikeCd -= dt;
+    if (player.poisonCd > 0) player.poisonCd -= dt;
+    if (player.electricCd > 0) player.electricCd -= dt;
+    if (player.electricTimer > 0) player.electricTimer -= dt;
+    if (player.parts.regen > 0 && player.hp < player.maxHp)
       player.hp = Math.min(player.maxHp, player.hp + player.parts.regen * 4 * dt);
-    }
     if (player.hurtFlash > 0) player.hurtFlash = Math.max(0, player.hurtFlash - dt * 3);
 
-    // --- food collisions ---
+    // foods
+    const pr = player.size + pickupRange();
     for (let i = game.foods.length - 1; i >= 0; i--) {
       const f = game.foods[i];
       f.phase += dt * 2;
-      const rr = (player.size + f.r) * (player.size + f.r);
-      if (dist2(f.x, f.y, player.x, player.y) < rr) {
-        eatFood(f);
-        game.foods.splice(i, 1);
-      }
+      if (!canEat(f)) continue;
+      const rr = (pr + f.r) * (pr + f.r);
+      if (dist2(f.x, f.y, player.x, player.y) < rr) { eatFood(f); game.foods.splice(i, 1); }
     }
 
-    // --- creatures ---
-    const pReach = player.size * jawReach();   // bonus reach beyond size for eating
+    // poison clouds
+    for (let i = game.poisons.length - 1; i >= 0; i--) {
+      const pc = game.poisons[i];
+      pc.life -= dt;
+      pc.r = lerp(pc.r, pc.maxR, clamp(dt * 1.5, 0, 1));
+      if (pc.life <= 0) { game.poisons.splice(i, 1); }
+    }
+
+    const elecActive = player.electricTimer > 0;
+    const elecR = player.size * 2.4;
+
+    // creatures
     for (let i = game.creatures.length - 1; i >= 0; i--) {
       const c = game.creatures[i];
       c.wobble += dt * 4;
       if (c.flash > 0) c.flash = Math.max(0, c.flash - dt * 3);
 
-      // simple AI: flee from bigger player, chase smaller player, else wander
-      c.changeIn -= dt;
-      const toP = dist2(c.x, c.y, player.x, player.y);
-      const senseRange = 360 + c.size * 6;
-      if (toP < senseRange * senseRange) {
-        const dx = player.x - c.x, dy = player.y - c.y;
-        const a = Math.atan2(dy, dx);
-        if (c.size > player.size * 1.05) c.dir = a;            // predator chases
-        else c.dir = a + Math.PI;                              // prey flees
-      } else if (c.changeIn <= 0) {
-        c.dir = rand(0, 6.28); c.changeIn = rand(1.5, 3.5);
+      // poison damage
+      for (const pc of game.poisons) {
+        const rr = (pc.r + c.size) * (pc.r + c.size);
+        if (dist2(pc.x, pc.y, c.x, c.y) < rr) {
+          c.flash = 1;
+          if (damageCreature(c, pc.dps * dt)) { killCreature(c); game.creatures.splice(i, 1); }
+        }
       }
-      const cspd = (30 + (c.size < player.size ? 40 : 25)) * (c.size > player.size ? 1.0 : 1.15);
-      c.vx = lerp(c.vx, Math.cos(c.dir) * cspd, clamp(2 * dt, 0, 1));
-      c.vy = lerp(c.vy, Math.sin(c.dir) * cspd, clamp(2 * dt, 0, 1));
+      if (c.hp <= 0) continue;
+
+      // electric damage + paralyze
+      if (elecActive) {
+        const rr = (elecR + c.size) * (elecR + c.size);
+        if (dist2(player.x, player.y, c.x, c.y) < rr) {
+          c.paralyze = 0.3; c.flash = 1;
+          if (damageCreature(c, electricDps() * dt)) { killCreature(c); game.creatures.splice(i, 1); continue; }
+        }
+      }
+
+      // AI movement
+      if (c.paralyze > 0) {
+        c.paralyze -= dt;
+        c.vx = lerp(c.vx, 0, clamp(8 * dt, 0, 1));
+        c.vy = lerp(c.vy, 0, clamp(8 * dt, 0, 1));
+      } else {
+        c.changeIn -= dt;
+        const toP = dist2(c.x, c.y, player.x, player.y);
+        const sense = 360 + c.size * 6;
+        if (toP < sense * sense) {
+          const a = Math.atan2(player.y - c.y, player.x - c.x);
+          c.dir = c.level > player.level + 1 ? a : a + Math.PI;  // stronger chases, weaker flees
+        } else if (c.changeIn <= 0) { c.dir = rand(0, 6.28); c.changeIn = rand(1.5, 3.5); }
+        const base = speedForLevel(c.level);
+        const cspd = c.level > player.level ? base * 1.04 : base * 1.12;
+        c.vx = lerp(c.vx, Math.cos(c.dir) * cspd, clamp(2 * dt, 0, 1));
+        c.vy = lerp(c.vy, Math.sin(c.dir) * cspd, clamp(2 * dt, 0, 1));
+      }
       c.x = clamp(c.x + c.vx * dt, -WORLD, WORLD);
       c.y = clamp(c.y + c.vy * dt, -WORLD, WORLD);
 
-      // collision with player
+      // contact with player
       const touchR = player.size + c.size;
-      if (toP < touchR * touchR) {
-        const canEat = c.size <= player.size + pReach;
-        if (canEat) {
-          eatCreature(c);
-          game.creatures.splice(i, 1);
-          continue;
-        } else {
-          // bigger creature: spike can hurt it, otherwise it hurts us
-          if (movingFast && spikeDamage() > 0 && player.spikeCooldown <= 0) {
-            c.hp -= spikeDamage();
-            c.flash = 1;
-            player.spikeCooldown = 0.6;
-            burst((c.x + player.x) / 2, (c.y + player.y) / 2, '#fff', 8, 140);
-            // small knockback to player too
-            const dx = player.x - c.x, dy = player.y - c.y, d = Math.hypot(dx, dy) || 1;
-            player.vx += dx / d * 60; player.vy += dy / d * 60;
-            if (c.hp <= 0) { eatCreature(c); game.creatures.splice(i, 1); continue; }
-          } else {
-            const dmg = (c.spiky ? 0.9 : 0.6) * c.size * dt * 2.2;
-            hurtPlayer(dmg + (c.size * 0.02), c.x, c.y);
-          }
+      if (dist2(c.x, c.y, player.x, player.y) < touchR * touchR) {
+        // spike (melee) attack on contact when dashing
+        if (movingFast && spikeDamage() > 0 && player.spikeCd <= 0) {
+          player.spikeCd = 0.5;
+          burst((c.x + player.x) / 2, (c.y + player.y) / 2, '#fff', 8, 140);
+          if (damageCreature(c, spikeDamage())) { killCreature(c); game.creatures.splice(i, 1); continue; }
         }
+        // contact damage to player (bigger/stronger hurts more)
+        const diff = c.level - player.level;
+        const dps = clamp(2 + Math.max(0, diff) * 6, 1, 70) + (c.spiky ? 4 : 0);
+        hurtPlayer(dps * dt * 2, c.x, c.y);
       }
     }
 
-    // --- particles ---
+    // particles
     for (let i = game.particles.length - 1; i >= 0; i--) {
       const p = game.particles[i];
-      p.x += p.vx * dt; p.y += p.vy * dt;
-      p.vx *= 0.94; p.vy *= 0.94;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.94; p.vy *= 0.94;
       p.life -= dt * 1.6;
       if (p.life <= 0) game.particles.splice(i, 1);
     }
 
     ensurePopulation();
     updateHUD();
+    updateActionButtons();
   }
 
-  // ---------- Rendering ----------
+  // ---------- Render ----------
   let camX = 0, camY = 0;
-
   function draw() {
-    // camera follows player smoothly
     camX = lerp(camX, player.x, 0.12);
     camY = lerp(camY, player.y, 0.12);
-
-    // background gradient
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#0a2336');
-    g.addColorStop(1, '#04111a');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
+    g.addColorStop(0, '#0a2336'); g.addColorStop(1, '#04111a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
     ctx.save();
     ctx.translate(W / 2 - camX, H / 2 - camY);
-
     drawBackgroundDots();
     drawWorldBounds();
 
-    // foods
     for (const f of game.foods) {
       if (!onScreen(f.x, f.y, 40)) continue;
       const pulse = 1 + Math.sin(f.phase) * 0.12;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r * pulse, 0, 6.28);
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r * pulse, 0, 6.28);
       ctx.fillStyle = f.meat ? '#ff6f8f' : '#73e6a0';
       ctx.shadowBlur = 8; ctx.shadowColor = f.meat ? '#ff6f8f' : '#73e6a0';
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      ctx.fill(); ctx.shadowBlur = 0;
     }
 
-    // creatures
-    for (const c of game.creatures) {
-      if (!onScreen(c.x, c.y, c.size + 30)) continue;
-      drawCreature(c);
+    // poison clouds
+    for (const pc of game.poisons) {
+      if (!onScreen(pc.x, pc.y, pc.r + 30)) continue;
+      const a = clamp(pc.life / pc.max, 0, 1) * 0.5;
+      const grad = ctx.createRadialGradient(pc.x, pc.y, pc.r * 0.2, pc.x, pc.y, pc.r);
+      grad.addColorStop(0, `rgba(120,255,120,${a})`);
+      grad.addColorStop(1, 'rgba(80,200,80,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(pc.x, pc.y, pc.r, 0, 6.28); ctx.fill();
     }
 
-    // player
+    for (const c of game.creatures) { if (onScreen(c.x, c.y, c.size + 30)) drawCreature(c); }
+
+    // electric ring around player
+    if (player.electricTimer > 0) drawElectric();
+
     drawPlayer();
 
-    // particles
     for (const p of game.particles) {
       ctx.globalAlpha = clamp(p.life, 0, 1);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, 6.28);
-      ctx.fillStyle = p.color;
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.28);
+      ctx.fillStyle = p.color; ctx.fill();
     }
     ctx.globalAlpha = 1;
-
     ctx.restore();
 
     drawMinimap();
   }
 
-  function onScreen(x, y, pad) {
-    return x > camX - W / 2 - pad && x < camX + W / 2 + pad &&
-           y > camY - H / 2 - pad && y < camY + H / 2 + pad;
-  }
+  const onScreen = (x, y, pad) =>
+    x > camX - W / 2 - pad && x < camX + W / 2 + pad && y > camY - H / 2 - pad && y < camY + H / 2 + pad;
 
   function drawBackgroundDots() {
-    // parallax specks
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
-    const gridStep = 120;
-    const startX = Math.floor((camX - W / 2) / gridStep) * gridStep;
-    const startY = Math.floor((camY - H / 2) / gridStep) * gridStep;
-    for (let x = startX; x < camX + W / 2 + gridStep; x += gridStep) {
-      for (let y = startY; y < camY + H / 2 + gridStep; y += gridStep) {
-        const jx = ((x * 13.7) % 47) - 23;
-        const jy = ((y * 7.3) % 53) - 26;
-        ctx.beginPath();
-        ctx.arc(x + jx, y + jy, 1.4, 0, 6.28);
-        ctx.fill();
+    const step = 120;
+    const sx = Math.floor((camX - W / 2) / step) * step;
+    const sy = Math.floor((camY - H / 2) / step) * step;
+    for (let x = sx; x < camX + W / 2 + step; x += step)
+      for (let y = sy; y < camY + H / 2 + step; y += step) {
+        const jx = ((x * 13.7) % 47) - 23, jy = ((y * 7.3) % 53) - 26;
+        ctx.beginPath(); ctx.arc(x + jx, y + jy, 1.4, 0, 6.28); ctx.fill();
       }
-    }
+  }
+  function drawWorldBounds() {
+    ctx.strokeStyle = 'rgba(120,210,255,0.18)'; ctx.lineWidth = 6;
+    ctx.strokeRect(-WORLD, -WORLD, WORLD * 2, WORLD * 2);
   }
 
-  function drawWorldBounds() {
-    ctx.strokeStyle = 'rgba(120,210,255,0.18)';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(-WORLD, -WORLD, WORLD * 2, WORLD * 2);
+  function drawElectric() {
+    const r = player.size * 2.4;
+    const t = player.electricTimer;
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.strokeStyle = `rgba(150,210,255,${clamp(t * 2, 0, 1)})`;
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 16; ctx.shadowColor = '#8fc4ff';
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.28); ctx.stroke();
+    const spikes = 14;
+    ctx.beginPath();
+    for (let i = 0; i < spikes; i++) {
+      const a = (i / spikes) * 6.28 + Math.random() * 0.2;
+      const r1 = r * 0.8, r2 = r * (1 + Math.random() * 0.25);
+      ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+      ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+    }
+    ctx.stroke();
+    ctx.restore();
+    ctx.shadowBlur = 0;
   }
 
   function drawCell(x, y, size, angle, wobble, color, opts) {
     opts = opts || {};
     ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-
-    // cilia / flagella
+    ctx.translate(x, y); ctx.rotate(angle);
     if (opts.cilia) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.6;
       const n = 10;
       for (let i = 0; i < n; i++) {
-        const a = (i / n) * 6.28;
-        const wob = Math.sin(wobble * 2 + i) * 0.4;
-        const len = size * 0.4;
+        const a = (i / n) * 6.28, wob = Math.sin(wobble * 2 + i) * 0.4, len = size * 0.4;
         ctx.beginPath();
         ctx.moveTo(Math.cos(a) * size, Math.sin(a) * size);
         ctx.lineTo(Math.cos(a + wob) * (size + len), Math.sin(a + wob) * (size + len));
         ctx.stroke();
       }
     }
-
-    // spikes
     if (opts.spikes) {
       ctx.fillStyle = opts.spikeColor || '#ffd36b';
       const n = 6 + opts.spikes * 2;
       for (let i = 0; i < n; i++) {
-        const a = (i / n) * 6.28;
-        const sp = size * (1.25 + opts.spikes * 0.12);
+        const a = (i / n) * 6.28, sp = size * (1.25 + opts.spikes * 0.1);
         ctx.beginPath();
         ctx.moveTo(Math.cos(a - 0.12) * size, Math.sin(a - 0.12) * size);
         ctx.lineTo(Math.cos(a) * sp, Math.sin(a) * sp);
         ctx.lineTo(Math.cos(a + 0.12) * size, Math.sin(a + 0.12) * size);
-        ctx.closePath();
-        ctx.fill();
+        ctx.closePath(); ctx.fill();
       }
     }
-
-    // body (wobbly blob)
     ctx.beginPath();
     const pts = 16;
     for (let i = 0; i <= pts; i++) {
-      const a = (i / pts) * 6.28;
-      const r = size * (1 + Math.sin(a * 3 + wobble) * 0.05);
+      const a = (i / pts) * 6.28, r = size * (1 + Math.sin(a * 3 + wobble) * 0.05);
       const px = Math.cos(a) * r, py = Math.sin(a) * r;
       if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
@@ -705,123 +762,75 @@
     grad.addColorStop(0, opts.light || lighten(color, 0.4));
     grad.addColorStop(1, color);
     ctx.fillStyle = grad;
-    ctx.shadowBlur = 14; ctx.shadowColor = color;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // membrane
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // armor ring
+    ctx.shadowBlur = 14; ctx.shadowColor = color; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
     if (opts.armor) {
-      ctx.strokeStyle = 'rgba(180,230,255,0.6)';
-      ctx.lineWidth = 2 + opts.armor;
+      ctx.strokeStyle = 'rgba(180,230,255,0.6)'; ctx.lineWidth = 2 + opts.armor;
       ctx.beginPath(); ctx.arc(0, 0, size * 0.86, 0, 6.28); ctx.stroke();
     }
-
-    // nucleus
-    ctx.beginPath();
-    ctx.arc(0, 0, size * 0.34, 0, 6.28);
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(size * 0.06, -size * 0.05, size * 0.16, 0, 6.28);
-    ctx.fillStyle = darken(color, 0.2);
-    ctx.fill();
-
-    // jaw (mouth) facing forward
+    ctx.beginPath(); ctx.arc(0, 0, size * 0.34, 0, 6.28);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(size * 0.06, -size * 0.05, size * 0.16, 0, 6.28);
+    ctx.fillStyle = darken(color, 0.2); ctx.fill();
     if (opts.jaw) {
       ctx.fillStyle = '#ff5a6e';
-      ctx.beginPath();
-      ctx.arc(size * 0.7, 0, size * (0.18 + opts.jaw * 0.05), 0, 6.28);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(size * 0.7, 0, size * (0.18 + opts.jaw * 0.05), 0, 6.28); ctx.fill();
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(size * 0.7, 0, size * (0.18 + opts.jaw * 0.05), 0, 6.28); ctx.stroke();
     }
-
     ctx.restore();
   }
 
   function drawPlayer() {
     const flash = player.hurtFlash > 0 && Math.floor(player.hurtFlash * 12) % 2 === 0;
     const baseColor = game.diet === 'carnivore' ? '#ff7a6e' : '#56d1ff';
-    const color = flash ? '#ffffff' : baseColor;
-    drawCell(player.x, player.y, player.size, player.angle, player.wobble, color, {
-      cilia: true,
-      spikes: player.parts.spike,
-      spikeColor: '#ffe08a',
-      armor: player.parts.armor,
-      jaw: player.parts.jaw,
+    drawCell(player.x, player.y, player.size, player.angle, player.wobble, flash ? '#ffffff' : baseColor, {
+      cilia: true, spikes: player.parts.spike, spikeColor: '#ffe08a',
+      armor: player.parts.armor, jaw: player.parts.jaw,
       light: flash ? '#fff' : lighten(baseColor, 0.45),
     });
   }
 
   function drawCreature(c) {
-    const flash = c.flash > 0;
     const ang = Math.atan2(c.vy, c.vx);
-    drawCell(c.x, c.y, c.size, ang, c.wobble, flash ? '#ffffff' : c.color, {
-      cilia: c.size < player.size,
-      spikes: c.spiky ? 2 : 0,
-      spikeColor: '#ff9a9a',
+    drawCell(c.x, c.y, c.size, ang, c.wobble, c.flash > 0 ? '#ffffff' : c.color, {
+      cilia: c.level <= player.level, spikes: c.spiky ? 2 : 0, spikeColor: '#ff9a9a',
     });
-
-    // threat / prey indicator ring
-    const edible = c.size <= player.size + player.size * jawReach();
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, c.size + 6, 0, 6.28);
-    ctx.strokeStyle = edible ? 'rgba(125,255,176,0.35)' : 'rgba(255,90,110,0.4)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    // threat ring: green = weaker/equal, red = stronger
+    const stronger = c.level > player.level + 1;
+    ctx.beginPath(); ctx.arc(c.x, c.y, c.size + 6, 0, 6.28);
+    ctx.strokeStyle = stronger ? 'rgba(255,90,110,0.45)' : 'rgba(125,255,176,0.32)';
+    ctx.lineWidth = 2; ctx.stroke();
+    if (c.paralyze > 0) {
+      ctx.strokeStyle = 'rgba(150,210,255,0.8)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.size + 10, 0, 6.28); ctx.stroke();
+    }
   }
 
-  // ---------- Minimap ----------
   function drawMinimap() {
-    const m = 70, pad = 12;
-    const mx = W - m - pad, my = H - m - pad;
-    ctx.save();
-    ctx.globalAlpha = 0.85;
-    ctx.fillStyle = 'rgba(4,17,26,0.7)';
-    ctx.strokeStyle = 'rgba(120,210,255,0.3)';
-    ctx.lineWidth = 1;
+    const m = 70, pad = 12, mx = W - m - pad, my = H - m - pad;
+    ctx.save(); ctx.globalAlpha = 0.85;
+    ctx.fillStyle = 'rgba(4,17,26,0.7)'; ctx.strokeStyle = 'rgba(120,210,255,0.3)'; ctx.lineWidth = 1;
     roundRect(mx, my, m, m, 8); ctx.fill(); ctx.stroke();
     const sc = m / (WORLD * 2);
-    const wx = v => mx + (v + WORLD) * sc;
-    const wy = v => my + (v + WORLD) * sc;
-    // predators near
+    const wx = v => mx + (v + WORLD) * sc, wy = v => my + (v + WORLD) * sc;
     for (const c of game.creatures) {
-      ctx.fillStyle = c.size > player.size ? '#ff5a6e' : '#7dffb0';
+      ctx.fillStyle = c.level > player.level + 1 ? '#ff5a6e' : '#7dffb0';
       ctx.fillRect(wx(c.x) - 0.8, wy(c.y) - 0.8, 1.6, 1.6);
     }
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(wx(player.x), wy(player.y), 2.2, 0, 6.28); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(wx(player.x), wy(player.y), 2.2, 0, 6.28); ctx.fill();
     ctx.restore();
   }
-
   function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
 
-  // ---------- Color helpers ----------
-  function hexToRgb(h) {
-    h = h.replace('#', '');
-    return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)];
-  }
-  function lighten(hex, t) {
-    const [r,g,b] = hexToRgb(hex);
-    return `rgb(${Math.round(lerp(r,255,t))},${Math.round(lerp(g,255,t))},${Math.round(lerp(b,255,t))})`;
-  }
-  function darken(hex, t) {
-    const [r,g,b] = hexToRgb(hex);
-    return `rgb(${Math.round(lerp(r,0,t))},${Math.round(lerp(g,0,t))},${Math.round(lerp(b,0,t))})`;
-  }
+  // colors
+  function hexToRgb(h){h=h.replace('#','');return[parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+  function lighten(hex,t){const[r,g,b]=hexToRgb(hex);return`rgb(${Math.round(lerp(r,255,t))},${Math.round(lerp(g,255,t))},${Math.round(lerp(b,255,t))})`;}
+  function darken(hex,t){const[r,g,b]=hexToRgb(hex);return`rgb(${Math.round(lerp(r,0,t))},${Math.round(lerp(g,0,t))},${Math.round(lerp(b,0,t))})`;}
 
   // ---------- HUD ----------
   const hpFill = document.getElementById('hpFill');
@@ -830,10 +839,28 @@
   function updateHUD() {
     hpFill.style.width = clamp(player.hp / player.maxHp * 100, 0, 100) + '%';
     growFill.style.width = clamp(player.grow / player.growNeed * 100, 0, 100) + '%';
-    stageFill.style.width = clamp(game.stageProgress / STAGE_GOAL * 100, 0, 100) + '%';
-    document.getElementById('sizeStat').textContent = Math.round(player.size);
+    stageFill.style.width = clamp(player.level / MAX_LEVEL * 100, 0, 100) + '%';
+    document.getElementById('dietStat').textContent = game.diet === 'carnivore' ? '🥩肉食' : '🌿草食';
     document.getElementById('dnaStat').textContent = game.dna;
-    document.getElementById('stageStat').textContent = (game.stageProgress + 1);
+    document.getElementById('stageStat').textContent = player.level;
+  }
+
+  const poisonBtn = document.getElementById('poisonBtn');
+  const electricBtn = document.getElementById('electricBtn');
+  function updateActionButtons() {
+    const playing = state === State.PLAY;
+    const showP = playing && player.parts.poison > 0;
+    const showE = playing && player.parts.electric > 0;
+    poisonBtn.style.display = showP ? 'flex' : 'none';
+    electricBtn.style.display = showE ? 'flex' : 'none';
+    if (showP) {
+      poisonBtn.querySelector('.cd').style.height = clamp(player.poisonCd / POISON_CD * 100, 0, 100) + '%';
+      poisonBtn.classList.toggle('ready', player.poisonCd <= 0);
+    }
+    if (showE) {
+      electricBtn.querySelector('.cd').style.height = clamp(player.electricCd / ELEC_CD * 100, 0, 100) + '%';
+      electricBtn.classList.toggle('ready', player.electricCd <= 0);
+    }
   }
 
   // ---------- Evolve menu ----------
@@ -841,21 +868,17 @@
     if (state !== State.PLAY) return;
     state = State.EVOLVE;
     renderParts();
-    document.getElementById('dnaBalance').textContent = game.dna;
     show('evolveScreen', true);
+    updateActionButtons();
   }
-  function closeEvolve() {
-    show('evolveScreen', false);
-    state = State.PLAY;
-  }
+  function closeEvolve() { show('evolveScreen', false); state = State.PLAY; updateActionButtons(); }
   function renderParts() {
+    document.getElementById('dnaBalance').textContent = game.dna;
+    document.getElementById('dietLabel').textContent = game.diet === 'carnivore' ? '🥩 肉食' : '🌿 草食';
     const list = document.getElementById('partsList');
     list.innerHTML = '';
-    document.getElementById('dnaBalance').textContent = game.dna;
     for (const def of PART_DEFS) {
-      const lvl = player.parts[def.key];
-      const maxed = lvl >= def.max;
-      const cost = partCost(def);
+      const lvl = player.parts[def.key], maxed = lvl >= def.max, cost = partCost(def);
       const afford = !maxed && game.dna >= cost;
       const div = document.createElement('div');
       div.className = 'part' + (maxed ? ' maxed' : afford ? ' affordable' : '');
@@ -870,61 +893,63 @@
       if (!maxed) div.addEventListener('click', () => buyPart(def));
       list.appendChild(div);
     }
+    // diet-switch special row (req 6)
+    const other = game.diet === 'carnivore' ? '草食' : '肉食';
+    const otherIcon = game.diet === 'carnivore' ? '🌿' : '🥩';
+    const dcost = 10;
+    const ds = document.createElement('div');
+    ds.className = 'part special' + (game.dna >= dcost ? ' affordable' : '');
+    ds.innerHTML = `
+      <div class="part-icon">🔄</div>
+      <div class="part-info">
+        <div class="pname">轉換食性 → ${otherIcon} ${other}</div>
+        <div class="pdesc">改變你能吃的食物。草食只吃綠色、肉食只吃紅色。</div>
+      </div>
+      <div class="part-cost">🧬 ${dcost}</div>`;
+    ds.addEventListener('click', () => buyDietSwitch(dcost));
+    list.appendChild(ds);
   }
   function buyPart(def) {
     const cost = partCost(def);
     if (player.parts[def.key] >= def.max) return;
     if (game.dna < cost) { toast('DNA 不足'); return; }
-    game.dna -= cost;
-    player.parts[def.key]++;
+    game.dna -= cost; player.parts[def.key]++;
     if (def.key === 'armor') { player.maxHp += 24; player.hp += 24; }
     burst(player.x, player.y, '#9fe9ff', 16, 160);
     toast(`進化：${def.name} Lv.${player.parts[def.key]}`);
-    renderParts();
-    updateHUD();
+    renderParts(); updateHUD(); updateActionButtons();
+  }
+  function buyDietSwitch(cost) {
+    if (game.dna < cost) { toast('DNA 不足'); return; }
+    game.dna -= cost;
+    game.diet = game.diet === 'carnivore' ? 'herbivore' : 'carnivore';
+    toast('食性轉換為 ' + (game.diet === 'carnivore' ? '🥩 肉食' : '🌿 草食'));
+    renderParts(); updateHUD();
   }
 
-  // ---------- Overlay helpers ----------
-  function show(id, v) { document.getElementById(id).classList.toggle('show', v); }
-
-  // ---------- Buttons ----------
-  document.querySelectorAll('.diet').forEach(el => {
-    el.addEventListener('click', () => {
-      document.querySelectorAll('.diet').forEach(d => d.classList.remove('sel'));
-      el.classList.add('sel');
-      game.diet = el.dataset.diet;
-    });
-  });
-  document.getElementById('startBtn').addEventListener('click', () => {
-    show('startScreen', false);
-    resetGame();
-    state = State.PLAY;
-  });
+  // ---------- Overlay helpers / buttons ----------
+  const show = (id, v) => document.getElementById(id).classList.toggle('show', v);
+  document.querySelectorAll('.diet').forEach(el => el.addEventListener('click', () => {
+    document.querySelectorAll('.diet').forEach(d => d.classList.remove('sel'));
+    el.classList.add('sel'); game.diet = el.dataset.diet;
+  }));
+  document.getElementById('startBtn').addEventListener('click', () => { show('startScreen', false); resetGame(); state = State.PLAY; });
   document.getElementById('evolveBtn').addEventListener('click', openEvolve);
   document.getElementById('closeEvolve').addEventListener('click', closeEvolve);
-  document.getElementById('restartBtn').addEventListener('click', () => {
-    show('overScreen', false); resetGame(); state = State.PLAY;
-  });
-  document.getElementById('winRestartBtn').addEventListener('click', () => {
-    show('winScreen', false); resetGame(); state = State.PLAY;
-  });
+  document.getElementById('restartBtn').addEventListener('click', () => { show('overScreen', false); resetGame(); state = State.PLAY; });
+  document.getElementById('winRestartBtn').addEventListener('click', () => { show('winScreen', false); resetGame(); state = State.PLAY; });
 
   // ---------- Loop ----------
   let last = performance.now();
   function frame(now) {
-    let dt = (now - last) / 1000;
-    last = now;
-    if (dt > 0.05) dt = 0.05;     // clamp big gaps
-    update(dt);
-    draw();
+    let dt = (now - last) / 1000; last = now;
+    if (dt > 0.05) dt = 0.05;
+    update(dt); draw();
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
-  // service worker (optional, matches repo PWA style)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 })();
 </script>
 </body>
