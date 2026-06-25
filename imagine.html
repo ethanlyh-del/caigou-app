@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AI 圖像生成</title>
+  <meta name="theme-color" content="#6C5CE7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AI 圖像">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root {
+      --bg: #0f0f17;
+      --card: #1a1a26;
+      --card2: #23232f;
+      --line: #2e2e3d;
+      --txt: #ececf5;
+      --sub: #9a9ab0;
+      --accent: #6C5CE7;
+      --accent2: #a29bfe;
+      --danger: #ff6b6b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      min-height: 100vh;
+      padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 24px);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    header { text-align: center; margin-bottom: 18px; }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent2), #fd79a8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    header p { font-size: 0.78rem; color: var(--sub); margin-top: 4px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    label { display: block; font-size: 0.8rem; color: var(--sub); margin-bottom: 8px; font-weight: 600; }
+
+    .prompt-wrap { position: relative; }
+    textarea {
+      width: 100%;
+      min-height: 96px;
+      padding: 12px;
+      padding-bottom: 40px;
+      background: var(--card2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--txt);
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+      line-height: 1.5;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: #5a5a70; }
+    .mini-btn {
+      position: absolute;
+      bottom: 9px;
+      padding: 5px 12px;
+      background: var(--card);
+      color: var(--accent2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .mini-btn:active { background: var(--accent); color: #fff; }
+    .paste-btn { right: 10px; }
+    .dice-btn { right: 76px; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .chip {
+      flex: 1 0 auto;
+      padding: 8px 12px;
+      background: var(--card2);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      color: var(--sub);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .section-title { font-size: 0.8rem; color: var(--sub); font-weight: 600; margin: 14px 0 8px; }
+
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+    .toggle-row span { font-size: 0.88rem; }
+    .toggle-row .desc { font-size: 0.72rem; color: var(--sub); margin-top: 2px; }
+    .switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+    .switch input { display: none; }
+    .slider {
+      position: absolute; inset: 0;
+      background: var(--card2);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      transition: 0.2s;
+    }
+    .slider::before {
+      content: ""; position: absolute;
+      width: 20px; height: 20px; left: 2px; top: 2px;
+      background: #fff; border-radius: 50%; transition: 0.2s;
+    }
+    .switch input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+    .switch input:checked + .slider::before { transform: translateX(20px); }
+
+    .gen-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; margin-top: 18px; padding: 16px;
+      background: linear-gradient(90deg, var(--accent), #fd79a8);
+      color: #fff; border: none; border-radius: 14px;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer;
+    }
+    .gen-btn:active { opacity: 0.85; }
+    .gen-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .stage {
+      position: relative;
+      border-radius: 16px; overflow: hidden;
+      background: var(--card2); border: 1px solid var(--line);
+      aspect-ratio: 1 / 1;
+      display: none;
+      margin-bottom: 12px;
+    }
+    .stage.show { display: block; }
+    .stage img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .stage .loading {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      background: var(--card2);
+    }
+    .spinner {
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 4px solid var(--line); border-top-color: var(--accent2);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { font-size: 0.82rem; color: var(--sub); }
+
+    .result-actions { display: none; gap: 8px; margin-bottom: 18px; }
+    .result-actions.show { display: flex; }
+    .act-btn {
+      flex: 1; padding: 12px; border-radius: 12px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--line); background: var(--card2); color: var(--txt);
+    }
+    .act-btn:active { background: var(--card); }
+    .act-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .error { display: none; color: var(--danger); font-size: 0.85rem; text-align: center; margin: 10px 0; }
+
+    .history-head { display: flex; align-items: center; justify-content: space-between; margin: 24px 0 12px; }
+    .history-head h2 { font-size: 1rem; font-weight: 700; }
+    .clear-link { font-size: 0.78rem; color: var(--sub); cursor: pointer; background: none; border: none; }
+    .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .gallery .empty { grid-column: 1 / -1; text-align: center; color: var(--sub); font-size: 0.85rem; padding: 24px 0; }
+    .thumb {
+      aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden;
+      border: 1px solid var(--line); cursor: pointer; position: relative; background: var(--card2);
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .hint { font-size: 0.72rem; color: var(--sub); text-align: center; margin-top: 14px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>✨ AI 圖像生成</h1>
+    <p>輸入描述，AI 幫你畫出來 · 免費 · 免登入</p>
+  </header>
+
+  <div class="card">
+    <label for="prompt">描述你想要的畫面</label>
+    <div class="prompt-wrap">
+      <textarea id="prompt" placeholder="例如：一隻戴墨鏡的橘貓坐在海邊衝浪板上，夕陽，電影感光線"></textarea>
+      <button class="mini-btn dice-btn" onclick="randomPrompt()">🎲 隨機</button>
+      <button class="mini-btn paste-btn" onclick="pastePrompt()">貼上</button>
+    </div>
+
+    <div class="section-title">風格</div>
+    <div class="row" id="styleRow"></div>
+
+    <div class="section-title">比例</div>
+    <div class="row" id="ratioRow"></div>
+
+    <div class="section-title">模型</div>
+    <div class="row" id="modelRow"></div>
+
+    <div class="toggle-row">
+      <div>
+        <span>🪄 智慧增強描述</span>
+        <div class="desc">讓 AI 自動補充細節，畫面更豐富</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="enhance" checked><span class="slider"></span></label>
+    </div>
+
+    <button class="gen-btn" id="genBtn" onclick="generate()">
+      <span>🎨 開始生成</span>
+    </button>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <div class="stage" id="stage">
+    <img id="resultImg" alt="">
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p id="loadingText">繪製中…通常需要 5–15 秒</p>
+    </div>
+  </div>
+
+  <div class="result-actions" id="resultActions">
+    <button class="act-btn primary" onclick="downloadImage()">⬇️ 儲存圖片</button>
+    <button class="act-btn" onclick="rerollSeed()">🔄 換一張</button>
+  </div>
+
+  <div class="history-head">
+    <h2>🖼 我的作品</h2>
+    <button class="clear-link" onclick="clearHistory()">清空</button>
+  </div>
+  <div class="gallery" id="gallery"></div>
+
+  <p class="hint">圖像由 Pollinations.ai 免費生成。<br>長按圖片也可直接儲存到相簿。</p>
+
+<script>
+  const STYLES = [
+    { id: 'none',     label: '無',     suffix: '' },
+    { id: 'photo',    label: '寫實照片', suffix: ', photorealistic, 4k, highly detailed, professional photography, natural lighting' },
+    { id: 'anime',    label: '動漫',   suffix: ', anime style, studio quality, vibrant colors, detailed' },
+    { id: 'oil',      label: '油畫',   suffix: ', oil painting, textured brush strokes, classical art, masterpiece' },
+    { id: 'cyber',    label: '賽博龐克', suffix: ', cyberpunk, neon lights, futuristic, cinematic, moody' },
+    { id: '3d',       label: '3D 渲染', suffix: ', 3d render, octane render, soft lighting, pixar style' },
+    { id: 'water',    label: '水彩',   suffix: ', watercolor painting, soft, delicate, artistic' },
+  ];
+  const RATIOS = [
+    { id: '1:1',  label: '正方 1:1',  w: 1024, h: 1024 },
+    { id: '9:16', label: '直 9:16',  w: 768,  h: 1344 },
+    { id: '16:9', label: '橫 16:9',  w: 1344, h: 768 },
+    { id: '3:4',  label: '直 3:4',   w: 896,  h: 1152 },
+    { id: '4:3',  label: '橫 4:3',   w: 1152, h: 896 },
+  ];
+  const MODELS = [
+    { id: 'flux',    label: 'Flux（高品質）' },
+    { id: 'turbo',   label: 'Turbo（快速）' },
+  ];
+  const RANDOM_PROMPTS = [
+    '一座漂浮在雲海上的水晶城堡，黃昏，史詩奇幻',
+    '太空人在開滿花的星球上散步，超現實，柔和色調',
+    '雨夜的東京街頭，霓虹倒影在濕地面，電影感',
+    '一隻穿和服的柴犬在櫻花樹下喝茶，可愛插畫',
+    '巨大的鯨魚在繁星密布的夜空中游泳，夢幻',
+    '復古蒸汽龐克風格的咖啡機器人，精緻細節',
+    '森林深處發光的蘑菇小屋，魔法氛圍，溫暖光線',
+    '極簡北歐風客廳，大片落地窗，午後陽光',
+  ];
+
+  const state = {
+    style: 'none',
+    ratio: '1:1',
+    model: 'flux',
+    seed: Math.floor(Math.random() * 1e9),
+    lastParams: null,
+  };
+
+  const el = id => document.getElementById(id);
+
+  function buildChips(rowId, items, key) {
+    const row = el(rowId);
+    row.innerHTML = '';
+    items.forEach(it => {
+      const c = document.createElement('div');
+      c.className = 'chip' + (state[key] === it.id ? ' active' : '');
+      c.textContent = it.label;
+      c.onclick = () => {
+        state[key] = it.id;
+        [...row.children].forEach(ch => ch.classList.remove('active'));
+        c.classList.add('active');
+      };
+      row.appendChild(c);
+    });
+  }
+  buildChips('styleRow', STYLES, 'style');
+  buildChips('ratioRow', RATIOS, 'ratio');
+  buildChips('modelRow', MODELS, 'model');
+
+  async function pastePrompt() {
+    try {
+      const t = await navigator.clipboard.readText();
+      if (t) el('prompt').value = t;
+    } catch (e) {
+      showError('無法讀取剪貼簿，請長按文字框貼上');
+    }
+  }
+  function randomPrompt() {
+    el('prompt').value = RANDOM_PROMPTS[Math.floor(Math.random() * RANDOM_PROMPTS.length)];
+  }
+
+  function showError(msg) {
+    const e = el('error');
+    e.textContent = msg;
+    e.style.display = 'block';
+    setTimeout(() => { e.style.display = 'none'; }, 4000);
+  }
+
+  function buildUrl(p) {
+    const styleObj = STYLES.find(s => s.id === p.style);
+    const fullPrompt = p.prompt + (styleObj ? styleObj.suffix : '');
+    const ratio = RATIOS.find(r => r.id === p.ratio);
+    const params = new URLSearchParams({
+      width: ratio.w,
+      height: ratio.h,
+      seed: p.seed,
+      model: p.model,
+      nologo: 'true',
+      referrer: 'caigou-imagine',
+    });
+    if (p.enhance) params.set('enhance', 'true');
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?${params}`;
+  }
+
+  function generate() {
+    const prompt = el('prompt').value.trim();
+    if (!prompt) { showError('請先輸入描述'); return; }
+
+    state.seed = Math.floor(Math.random() * 1e9);
+    runGeneration(prompt);
+  }
+
+  function rerollSeed() {
+    if (!state.lastParams) return;
+    state.seed = Math.floor(Math.random() * 1e9);
+    runGeneration(state.lastParams.prompt, true);
+  }
+
+  function runGeneration(prompt, isReroll) {
+    const params = {
+      prompt,
+      style: isReroll ? state.lastParams.style : state.style,
+      ratio: isReroll ? state.lastParams.ratio : state.ratio,
+      model: isReroll ? state.lastParams.model : state.model,
+      enhance: isReroll ? state.lastParams.enhance : el('enhance').checked,
+      seed: state.seed,
+    };
+    state.lastParams = params;
+
+    const url = buildUrl(params);
+    const stage = el('stage');
+    const ratio = RATIOS.find(r => r.id === params.ratio);
+    stage.style.aspectRatio = `${ratio.w} / ${ratio.h}`;
+    stage.classList.add('show');
+    el('loading').style.display = 'flex';
+    el('resultActions').classList.remove('show');
+    el('genBtn').disabled = true;
+
+    const img = el('resultImg');
+    img.onload = () => {
+      el('loading').style.display = 'none';
+      el('resultActions').classList.add('show');
+      el('genBtn').disabled = false;
+      saveToHistory(url, params);
+    };
+    img.onerror = () => {
+      el('loading').style.display = 'none';
+      el('genBtn').disabled = false;
+      showError('生成失敗，請稍後再試或換個描述');
+    };
+    img.src = url;
+    img.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function downloadImage() {
+    const img = el('resultImg');
+    if (!img.src) return;
+    const name = `ai-image-${Date.now()}.jpg`;
+    try {
+      const res = await fetch(img.src);
+      const blob = await res.blob();
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], name, { type: blob.type })] })) {
+        await navigator.share({ files: [new File([blob], name, { type: blob.type })] });
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+    } catch (e) {
+      window.open(img.src, '_blank');
+    }
+  }
+
+  // ---- History (localStorage) ----
+  const HKEY = 'imagine_history_v1';
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem(HKEY) || '[]'); } catch { return []; }
+  }
+  function saveToHistory(url, params) {
+    const hist = getHistory();
+    if (hist[0] && hist[0].url === url) return;
+    hist.unshift({ url, params, ts: Date.now() });
+    localStorage.setItem(HKEY, JSON.stringify(hist.slice(0, 30)));
+    renderHistory();
+  }
+  function clearHistory() {
+    if (!confirm('確定要清空所有作品？')) return;
+    localStorage.removeItem(HKEY);
+    renderHistory();
+  }
+  function renderHistory() {
+    const g = el('gallery');
+    const hist = getHistory();
+    if (!hist.length) {
+      g.innerHTML = '<div class="empty">還沒有作品，生成第一張吧！</div>';
+      return;
+    }
+    g.innerHTML = '';
+    hist.forEach(item => {
+      const t = document.createElement('div');
+      t.className = 'thumb';
+      t.innerHTML = `<img src="${item.url}" loading="lazy" alt="">`;
+      t.onclick = () => {
+        el('prompt').value = item.params.prompt;
+        state.style = item.params.style; state.ratio = item.params.ratio;
+        state.model = item.params.model; el('enhance').checked = item.params.enhance;
+        buildChips('styleRow', STYLES, 'style');
+        buildChips('ratioRow', RATIOS, 'ratio');
+        buildChips('modelRow', MODELS, 'model');
+        const stage = el('stage');
+        const r = RATIOS.find(x => x.id === item.params.ratio) || RATIOS[0];
+        stage.style.aspectRatio = `${r.w} / ${r.h}`;
+        stage.classList.add('show');
+        el('loading').style.display = 'none';
+        el('resultImg').src = item.url;
+        state.lastParams = item.params;
+        el('resultActions').classList.add('show');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+      g.appendChild(t);
+    });
+  }
+  renderHistory();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
