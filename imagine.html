@@ -85,6 +85,18 @@
     .paste-btn { right: 10px; }
     .dice-btn { right: 76px; }
 
+    .optimize-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; margin-top: 10px; padding: 11px;
+      background: var(--card2);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      color: var(--accent2);
+      font-size: 0.86rem; font-weight: 700; cursor: pointer;
+    }
+    .optimize-btn:active { background: var(--accent); color: #fff; }
+    .optimize-btn:disabled { opacity: 0.6; cursor: default; }
+
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
     .chip {
       flex: 1 0 auto;
@@ -197,6 +209,10 @@
       <button class="mini-btn paste-btn" onclick="pastePrompt()">貼上</button>
     </div>
 
+    <button class="optimize-btn" id="optimizeBtn" onclick="optimizePrompt()">
+      <span id="optimizeLabel">✨ AI 優化提示詞（翻成英文・補強細節）</span>
+    </button>
+
     <div class="section-title">風格</div>
     <div class="row" id="styleRow"></div>
 
@@ -240,7 +256,7 @@
   </div>
   <div class="gallery" id="gallery"></div>
 
-  <p class="hint">圖像由 Pollinations.ai 免費生成。<br>長按圖片也可直接儲存到相簿。</p>
+  <p class="hint">圖像由 Pollinations.ai 免費生成。<br>用中文描述後按「✨ AI 優化提示詞」可大幅提升精準度。<br>長按圖片也可直接儲存到相簿。</p>
 
 <script>
   const STYLES = [
@@ -313,6 +329,47 @@
   }
   function randomPrompt() {
     el('prompt').value = RANDOM_PROMPTS[Math.floor(Math.random() * RANDOM_PROMPTS.length)];
+  }
+
+  async function optimizePrompt() {
+    const ta = el('prompt');
+    const input = ta.value.trim();
+    if (!input) { showError('請先輸入描述'); return; }
+
+    const btn = el('optimizeBtn');
+    const label = el('optimizeLabel');
+    const original = label.textContent;
+    btn.disabled = true;
+    label.textContent = '⏳ 優化中…';
+
+    const instruction =
+      'You are an expert prompt engineer for the Flux text-to-image model. ' +
+      'Rewrite the user idea into ONE vivid, highly detailed English image prompt. ' +
+      'Translate any non-English text to natural English. ' +
+      'Specify the main subject, setting, composition, lighting, mood, color palette and art style, ' +
+      'and end with concise quality tags. Keep it under 70 words. ' +
+      'Output ONLY the final prompt — no quotes, no labels, no explanation.\n\nUser idea: ' + input;
+
+    try {
+      const res = await fetch(
+        'https://text.pollinations.ai/' + encodeURIComponent(instruction) +
+        '?model=openai&referrer=caigou-imagine'
+      );
+      if (!res.ok) throw new Error('bad status');
+      let txt = (await res.text()).trim();
+      // 清掉可能的引號或 "Prompt:" 前綴
+      txt = txt.replace(/^["'`]+|["'`]+$/g, '')
+               .replace(/^(final\s+)?prompt\s*[:：]\s*/i, '')
+               .trim();
+      if (!txt || txt.length < 4) throw new Error('empty');
+      ta.value = txt;
+      ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) {
+      showError('優化失敗，請稍後再試（原描述已保留）');
+    } finally {
+      btn.disabled = false;
+      label.textContent = original;
+    }
   }
 
   function showError(msg) {
